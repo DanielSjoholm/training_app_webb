@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Tracker - Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Training Tracker - Test Page</h1>
+    
+    <div class="test-section">
+        <h2>App Functionality Tests</h2>
+        <p>Use these buttons to test the core functionality of your Training Tracker app:</p>
+        
+        <button class="test-button" onclick="testLocalStorage()">Test Local Storage</button>
+        <button class="test-button" onclick="testPrograms()">Test Programs Data</button>
+        <button class="test-button" onclick="testWorkoutSaving()">Test Workout Saving</button>
+        <button class="test-button" onclick="clearTestData()">Clear Test Data</button>
+        
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Quick Start Guide</h2>
+        <ol>
+            <li><strong>Start Local Server:</strong> Open terminal in this folder and run: <code>python -m http.server 8000</code></li>
+            <li><strong>Open App:</strong> Go to <a href="http://localhost:8000" target="_blank">http://localhost:8000</a></li>
+            <li><strong>Test on Phone:</strong> Use your phone's browser or scan QR code from your computer</li>
+            <li><strong>Install PWA:</strong> Add to home screen for app-like experience</li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>Mobile Testing Tips</h2>
+        <ul>
+            <li>Use Chrome DevTools Device Mode to simulate mobile screens</li>
+            <li>Test touch interactions and responsive design</li>
+            <li>Verify PWA installation on actual mobile devices</li>
+            <li>Check offline functionality by disabling network</li>
+        </ul>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const results = document.getElementById('test-results');
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            results.appendChild(status);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => status.remove(), 5000);
+        }
+        
+        function testLocalStorage() {
+            try {
+                localStorage.setItem('test', 'working');
+                const testValue = localStorage.getItem('test');
+                localStorage.removeItem('test');
+                
+                if (testValue === 'working') {
+                    showStatus('✅ Local Storage is working correctly', 'success');
+                } else {
+                    showStatus('❌ Local Storage test failed', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Local Storage error: ' + error.message, 'error');
+            }
+        }
+        
+        function testPrograms() {
+            const programs = {
+                'chest-triceps': { name: 'Chest & Triceps', exercises: ['Bench Press', 'Incline Dumbbell Press'] },
+                'shoulder-biceps': { name: 'Shoulder & Biceps', exercises: ['Shoulder Press', 'Lateral Raise'] }
+            };
+            
+            try {
+                localStorage.setItem('test-programs', JSON.stringify(programs));
+                const loaded = JSON.parse(localStorage.getItem('test-programs'));
+                localStorage.removeItem('test-programs');
+                
+                if (loaded['chest-triceps'] && loaded['shoulder-biceps']) {
+                    showStatus('✅ Programs data structure is working', 'success');
+                } else {
+                    showStatus('❌ Programs data test failed', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Programs test error: ' + error.message, 'error');
+            }
+        }
+        
+        function testWorkoutSaving() {
+            const testWorkout = {
+                program: 'chest-triceps',
+                programName: 'Chest & Triceps',
+                date: new Date().toISOString(),
+                exercises: [
+                    { name: 'Bench Press', weight: '100', reps: '10', sets: '3' }
+                ]
+            };
+            
+            try {
+                localStorage.setItem('test-workout', JSON.stringify(testWorkout));
+                const loaded = JSON.parse(localStorage.getItem('test-workout'));
+                localStorage.removeItem('test-workout');
+                
+                if (loaded.exercises && loaded.exercises[0].name === 'Bench Press') {
+                    showStatus('✅ Workout saving is working correctly', 'success');
+                } else {
+                    showStatus('❌ Workout saving test failed', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Workout test error: ' + error.message, 'error');
+            }
+        }
+        
+        function clearTestData() {
+            try {
+                // Clear any test data
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.startsWith('test-')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                showStatus('🧹 Test data cleared', 'info');
+            } catch (error) {
+                showStatus('❌ Error clearing test data: ' + error.message, 'error');
+            }
+        }
+        
+        // Auto-run basic tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testLocalStorage();
+                testPrograms();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

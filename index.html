@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="Track your workouts and progress with this mobile-friendly training app">
+</head>
+<body>
+    <div id="app">
+        <!-- Main Menu -->
+        <div id="main-menu" class="screen active">
+            <div class="header">
+                <h1>💪 Training Tracker</h1>
+                <p class="motivational-quote" id="quote"></p>
+            </div>
+            
+            <div class="program-grid">
+                <button class="program-btn" data-program="chest-triceps">
+                    <span class="icon">🏋️</span>
+                    <span class="name">Chest & Triceps</span>
+                </button>
+                <button class="program-btn" data-program="shoulder-biceps">
+                    <span class="icon">💪</span>
+                    <span class="name">Shoulder & Biceps</span>
+                </button>
+                <button class="program-btn" data-program="back">
+                    <span class="icon">🦾</span>
+                    <span class="name">Back</span>
+                </button>
+                <button class="program-btn" data-program="legs">
+                    <span class="icon">🦵</span>
+                    <span class="name">Legs</span>
+                </button>
+            </div>
+
+            <div class="bottom-nav">
+                <button class="nav-btn" id="history-btn">
+                    <span class="icon">📊</span>
+                    <span>History</span>
+                </button>
+                <button class="nav-btn" id="progress-btn">
+                    <span class="icon">📈</span>
+                    <span>Progress</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Workout Screen -->
+        <div id="workout-screen" class="screen">
+            <div class="header">
+                <button class="back-btn" id="back-to-menu">←</button>
+                <h2 id="workout-title"></h2>
+            </div>
+            
+            <div class="workout-form">
+                <div id="exercises-container"></div>
+                
+                <div class="form-actions">
+                    <button class="btn btn-primary" id="save-workout">💾 Save Workout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Screen -->
+        <div id="history-screen" class="screen">
+            <div class="header">
+                <button class="back-btn" id="back-from-history">←</button>
+                <h2>Workout History</h2>
+            </div>
+            
+            <div class="history-filters">
+                <select id="program-filter">
+                    <option value="">All Programs</option>
+                    <option value="chest-triceps">Chest & Triceps</option>
+                    <option value="shoulder-biceps">Shoulder & Biceps</option>
+                    <option value="back">Back</option>
+                    <option value="legs">Legs</option>
+                </select>
+            </div>
+            
+            <div id="history-list"></div>
+        </div>
+
+        <!-- Progress Screen -->
+        <div id="progress-screen" class="screen">
+            <div class="header">
+                <button class="back-btn" id="back-from-progress">←</button>
+                <h2>Progress Tracking</h2>
+            </div>
+            
+            <div class="progress-filters">
+                <select id="exercise-select">
+                    <option value="">Select Exercise</option>
+                </select>
+            </div>
+            
+            <div id="progress-chart"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

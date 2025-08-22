@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# VS Code
+.vscode/
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Tkinter window config
+*.tcl
