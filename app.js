@@ -30,17 +30,19 @@ class TrainingApp {
                 exercises: [
                     'Shoulder Press',
                     'Lateral Raise',
-                    'Front Raise',
-                    'Barbell Curl',
+                    'Reverse Flies',
+                    'Curl Cable Front',
+                    'Curl Cable Back',
                     'Hammer Curl'
                 ]
             },
             'back': {
-                name: 'Back',
+                name: 'PullPass',
                 exercises: [
                     'Chins',
-                    'Latpulldown',
-                    'Rows'
+                    'Bred Maskin Rodd',
+                    'Lat Pull Down',
+                    'En Arm Lats Drag'
                 ]
             },
             'legs': {
@@ -49,6 +51,12 @@ class TrainingApp {
                     'Squats',
                     'Deadlifts',
                     'Hipthrusters'
+                ]
+            },
+            'abs': {
+                name: 'Abs',
+                exercises: [
+                    'Rope Curls'
                 ]
             }
         };
