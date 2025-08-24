@@ -3,6 +3,9 @@ class TrainingApp {
     constructor() {
         this.currentProgram = null;
         this.workouts = this.loadWorkouts();
+        this.workoutTimer = null;
+        this.workoutStartTime = null;
+        this.workoutDuration = 0;
         this.motivationalQuotes = [
             "Push yourself, because no one else is going to do it for you!",
             "The pain you feel today will be the strength you feel tomorrow.",
@@ -64,6 +67,95 @@ class TrainingApp {
         this.init();
     }
     
+    startWorkoutTimer() {
+        // Stop any existing timer
+        if (this.workoutTimer) {
+            this.stopWorkoutTimer();
+        }
+        
+        this.workoutStartTime = Date.now();
+        this.workoutDuration = 0;
+        
+        // Update timer every second
+        this.workoutTimer = setInterval(() => {
+            this.workoutDuration = Date.now() - this.workoutStartTime;
+            this.updateTimerDisplay();
+        }, 1000);
+        
+        // Initial display update
+        this.updateTimerDisplay();
+    }
+    
+    stopWorkoutTimer() {
+        if (this.workoutTimer) {
+            clearInterval(this.workoutTimer);
+            this.workoutTimer = null;
+        }
+        
+        // Calculate final duration
+        if (this.workoutStartTime) {
+            this.workoutDuration = Date.now() - this.workoutStartTime;
+        }
+    }
+    
+    formatDuration(milliseconds) {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}min ${seconds}sec`;
+    }
+    
+    updateTimerDisplay() {
+        const timerElement = document.getElementById('workout-timer');
+        if (timerElement) {
+            timerElement.textContent = this.formatDuration(this.workoutDuration);
+        }
+    }
+    
+    getLastWorkout(programId) {
+        // Find the most recent workout for this program
+        const programWorkouts = this.workouts
+            .filter(workout => workout.program === programId)
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        return programWorkouts.length > 0 ? programWorkouts[0] : null;
+    }
+    
+    renderLastWorkout(lastWorkout) {
+        const container = document.getElementById('last-workout-container');
+        if (!container) return;
+        
+        if (!lastWorkout) {
+            container.innerHTML = '<p class="no-last-workout">No previous workout found for this program. Start fresh! 💪</p>';
+            return;
+        }
+        
+        const date = new Date(lastWorkout.date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        container.innerHTML = `
+            <div class="last-workout-header">
+                <h3>📊 Last Workout (${date})</h3>
+                <span class="last-workout-duration">⏱️ ${this.formatDuration(lastWorkout.duration)}</span>
+            </div>
+            <div class="last-workout-exercises">
+                ${lastWorkout.exercises.map(ex => `
+                    <div class="last-exercise-item">
+                        <span class="last-exercise-name">${ex.name}</span>
+                        <div class="last-exercise-sets">
+                            ${ex.sets.map(set => `
+                                <span class="last-set-display">${set.weight}kg × ${set.reps}</span>
+                            `).join(' • ')}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
     init() {
         this.setupEventListeners();
         this.showRandomQuote();
@@ -105,6 +197,11 @@ class TrainingApp {
         // Show target screen
         document.getElementById(screenId).classList.add('active');
         
+        // Stop workout timer if going back to main menu from workout
+        if (screenId === 'main-menu' && this.workoutTimer) {
+            this.stopWorkoutTimer();
+        }
+        
         // Load content for specific screens
         if (screenId === 'history-screen') {
             this.loadHistory();
@@ -125,7 +222,15 @@ class TrainingApp {
         
         document.getElementById('workout-title').textContent = program.name;
         this.renderWorkoutForm(program.exercises);
+        
+        // Get and display last workout for this program
+        const lastWorkout = this.getLastWorkout(programId);
+        this.renderLastWorkout(lastWorkout);
+        
         this.showScreen('workout-screen');
+        
+        // Start the workout timer
+        this.startWorkoutTimer();
     }
     
     renderWorkoutForm(exercises) {
@@ -216,11 +321,15 @@ class TrainingApp {
     saveWorkout() {
         if (!this.currentProgram) return;
         
+        // Stop the workout timer
+        this.stopWorkoutTimer();
+        
         const program = this.programs[this.currentProgram];
         const workoutData = {
             program: this.currentProgram,
             programName: program.name,
             date: new Date().toISOString(),
+            duration: this.workoutDuration,
             exercises: []
         };
         
@@ -304,6 +413,10 @@ class TrainingApp {
                             🗑️
                         </button>
                     </div>
+                </div>
+                <div class="workout-duration">
+                    <span class="duration-label">⏱️ Total time workout:</span>
+                    <span class="duration-value">${workout.duration ? this.formatDuration(workout.duration) : 'N/A'}</span>
                 </div>
                 <div class="exercise-list">
                     ${workout.exercises.map(ex => `
