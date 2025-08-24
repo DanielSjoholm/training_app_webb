@@ -6,6 +6,7 @@ class TrainingApp {
         this.workoutTimer = null;
         this.workoutStartTime = null;
         this.workoutDuration = 0;
+        this.isWorkoutActive = false; // Ny variabel för att spåra om träning pågår
         this.motivationalQuotes = [
             "Push yourself, because no one else is going to do it for you!",
             "The pain you feel today will be the strength you feel tomorrow.",
@@ -158,8 +159,30 @@ class TrainingApp {
     
     init() {
         this.setupEventListeners();
+        this.setupPageProtection(); // Ny metod för sidans skydd
         this.showRandomQuote();
         this.populateExerciseSelect();
+    }
+    
+    setupPageProtection() {
+        // Skydda mot sidans refresh
+        window.addEventListener('beforeunload', (e) => {
+            if (this.isWorkoutActive) {
+                e.preventDefault();
+                e.returnValue = 'Du har en aktiv träning som inte är sparad. Är du säker på att du vill lämna sidan?';
+                return e.returnValue;
+            }
+        });
+        
+        // Lägg till en pushState när träning startar
+        window.history.pushState(null, null, window.location.href);
+    }
+    
+    forceStopWorkout() {
+        // Tvinga stopp av träning
+        this.stopWorkoutTimer();
+        this.isWorkoutActive = false;
+        this.currentProgram = null;
     }
     
     setupEventListeners() {
@@ -199,7 +222,18 @@ class TrainingApp {
         
         // Stop workout timer if going back to main menu from workout
         if (screenId === 'main-menu' && this.workoutTimer) {
+            // Lägg till bekräftelse om träning pågår
+            if (this.isWorkoutActive) {
+                const confirmExit = confirm('Du har en aktiv träning som inte är sparad. Är du säker på att du vill avsluta?');
+                if (!confirmExit) {
+                    // Visa träningsskärmen igen
+                    this.showScreen('workout-screen');
+                    return; // Stanna kvar på träningsskärmen
+                }
+            }
+            
             this.stopWorkoutTimer();
+            this.isWorkoutActive = false;
         }
         
         // Load content for specific screens
@@ -218,6 +252,7 @@ class TrainingApp {
     
     openWorkout(programId) {
         this.currentProgram = programId;
+        this.isWorkoutActive = true; // Markera att träning är aktiv
         const program = this.programs[programId];
         
         document.getElementById('workout-title').textContent = program.name;
@@ -321,8 +356,15 @@ class TrainingApp {
     saveWorkout() {
         if (!this.currentProgram) return;
         
+        // Lägg till bekräftelse innan sparande
+        const confirmSave = confirm('Är du säker på att du vill spara och avsluta denna träning? Detta kan inte ångras.');
+        if (!confirmSave) {
+            return;
+        }
+        
         // Stop the workout timer
         this.stopWorkoutTimer();
+        this.isWorkoutActive = false; // Markera att träning är avslutad
         
         const program = this.programs[this.currentProgram];
         const workoutData = {
