@@ -7,6 +7,7 @@ class TrainingApp {
         this.workoutStartTime = null;
         this.workoutDuration = 0;
         this.isWorkoutActive = false; // Ny variabel för att spåra om träning pågår
+        this.workoutState = this.loadWorkoutState(); // Persist workout state
         this.motivationalQuotes = [
             "Push yourself, because no one else is going to do it for you!",
             "The pain you feel today will be the strength you feel tomorrow.",
@@ -23,8 +24,8 @@ class TrainingApp {
                 name: 'Chest & Triceps',
                 exercises: [
                     'Bench Press',
-                    'Incline Dumbbell Press', 
-                    'Chest Flyes',
+                    'Incline Press', 
+                    'PeckDeck',
                     'Triceps Pushdown',
                     'Overhead Triceps Ext'
                 ]
@@ -44,9 +45,9 @@ class TrainingApp {
                 name: 'PullPass',
                 exercises: [
                     'Chins',
-                    'Bred Maskin Rodd',
+                    'Wide Machine Row',
                     'Lat Pull Down',
-                    'En Arm Lats Drag'
+                    'Single Arm Lat Pulldown'
                 ]
             },
             'legs': {
@@ -62,42 +63,30 @@ class TrainingApp {
                 exercises: [
                     'Rope Curls'
                 ]
+            },
+            'arms': {
+                name: 'Arms',
+                exercises: [
+                    'Biceps Curl',
+                    'Curl Cable Front',
+                    'Curl Cable Back',
+                    'Triceps Pushdown',
+                    'Overhead Triceps Ext'
+                ]
+            },
+            'chest': {
+                name: 'Chest',
+                exercises: [
+                    'Machine Press',
+                    'Machine Incline Press',
+                    'Peck Deck'
+                ]
             }
         };
         
         this.init();
     }
     
-    startWorkoutTimer() {
-        // Stop any existing timer
-        if (this.workoutTimer) {
-            this.stopWorkoutTimer();
-        }
-        
-        this.workoutStartTime = Date.now();
-        this.workoutDuration = 0;
-        
-        // Update timer every second
-        this.workoutTimer = setInterval(() => {
-            this.workoutDuration = Date.now() - this.workoutStartTime;
-            this.updateTimerDisplay();
-        }, 1000);
-        
-        // Initial display update
-        this.updateTimerDisplay();
-    }
-    
-    stopWorkoutTimer() {
-        if (this.workoutTimer) {
-            clearInterval(this.workoutTimer);
-            this.workoutTimer = null;
-        }
-        
-        // Calculate final duration
-        if (this.workoutStartTime) {
-            this.workoutDuration = Date.now() - this.workoutStartTime;
-        }
-    }
     
     formatDuration(milliseconds) {
         const totalSeconds = Math.floor(milliseconds / 1000);
@@ -162,6 +151,7 @@ class TrainingApp {
         this.setupPageProtection(); // Ny metod för sidans skydd
         this.showRandomQuote();
         this.populateExerciseSelect();
+        this.checkForActiveWorkout(); // Check for active workout on page load
     }
     
     setupPageProtection() {
@@ -250,23 +240,6 @@ class TrainingApp {
         quoteElement.textContent = randomQuote;
     }
     
-    openWorkout(programId) {
-        this.currentProgram = programId;
-        this.isWorkoutActive = true; // Markera att träning är aktiv
-        const program = this.programs[programId];
-        
-        document.getElementById('workout-title').textContent = program.name;
-        this.renderWorkoutForm(program.exercises);
-        
-        // Get and display last workout for this program
-        const lastWorkout = this.getLastWorkout(programId);
-        this.renderLastWorkout(lastWorkout);
-        
-        this.showScreen('workout-screen');
-        
-        // Start the workout timer
-        this.startWorkoutTimer();
-    }
     
     renderWorkoutForm(exercises) {
         const container = document.getElementById('exercises-container');
@@ -299,6 +272,9 @@ class TrainingApp {
             // Add initial set
             this.addSet(exercise.replace(/\s+/g, '-'));
         });
+        
+        // Add input event listeners for form data persistence
+        this.addFormDataListeners();
     }
     
     addSet(exerciseId) {
@@ -353,74 +329,6 @@ class TrainingApp {
         });
     }
     
-    saveWorkout() {
-        if (!this.currentProgram) return;
-        
-        // Lägg till bekräftelse innan sparande
-        const confirmSave = confirm('Är du säker på att du vill spara och avsluta denna träning? Detta kan inte ångras.');
-        if (!confirmSave) {
-            return;
-        }
-        
-        // Stop the workout timer
-        this.stopWorkoutTimer();
-        this.isWorkoutActive = false; // Markera att träning är avslutad
-        
-        const program = this.programs[this.currentProgram];
-        const workoutData = {
-            program: this.currentProgram,
-            programName: program.name,
-            date: new Date().toISOString(),
-            duration: this.workoutDuration,
-            exercises: []
-        };
-        
-        // Collect exercise data
-        program.exercises.forEach(exercise => {
-            const exerciseId = exercise.replace(/\s+/g, '-');
-            const setsContainer = document.getElementById(`sets-${exerciseId}`);
-            const setsList = setsContainer.querySelector('.sets-list');
-            const setRows = setsList.querySelectorAll('.set-row');
-            
-            const exerciseData = {
-                name: exercise,
-                sets: []
-            };
-            
-            setRows.forEach(setRow => {
-                const weightInput = setRow.querySelector('.weight-input');
-                const repsInput = setRow.querySelector('.reps-input');
-                
-                if (weightInput && repsInput) {
-                    const weight = weightInput.value;
-                    const reps = repsInput.value;
-                    
-                    if (weight || reps) {
-                        exerciseData.sets.push({
-                            weight: weight || '0',
-                            reps: reps || '0'
-                        });
-                    }
-                }
-            });
-            
-            if (exerciseData.sets.length > 0) {
-                workoutData.exercises.push(exerciseData);
-            }
-        });
-        
-        // Save workout
-        this.workouts.push(workoutData);
-        this.saveWorkouts();
-        
-        // Show success message
-        this.showToast('Workout saved successfully! 💪', 'success');
-        
-        // Return to main menu
-        setTimeout(() => {
-            this.showScreen('main-menu');
-        }, 1500);
-    }
     
     loadHistory() {
         const container = document.getElementById('history-list');
@@ -535,7 +443,13 @@ class TrainingApp {
         const chartContainer = document.getElementById('progress-chart');
         
         if (!exerciseName) {
-            chartContainer.innerHTML = '<p>Select an exercise to view progress</p>';
+            chartContainer.innerHTML = `
+                <div class="progress-placeholder">
+                    <div class="placeholder-icon">📈</div>
+                    <h3>Select an Exercise</h3>
+                    <p>Choose an exercise from the dropdown above to view your progress</p>
+                </div>
+            `;
             return;
         }
         
@@ -552,42 +466,218 @@ class TrainingApp {
             .sort((a, b) => a.date - b.date);
         
         if (exerciseData.length === 0) {
-            chartContainer.innerHTML = '<p>No data for this exercise yet</p>';
+            chartContainer.innerHTML = `
+                <div class="progress-placeholder">
+                    <div class="placeholder-icon">📊</div>
+                    <h3>No Data Yet</h3>
+                    <p>Start tracking this exercise to see your progress!</p>
+                </div>
+            `;
             return;
         }
         
-        // Calculate best weight from all sets
+        // Calculate statistics
         let bestWeight = 0;
+        let totalVolume = 0;
+        let totalWorkouts = exerciseData.length;
+        
         exerciseData.forEach(workout => {
             workout.sets.forEach(set => {
                 const weight = parseFloat(set.weight);
+                const reps = parseFloat(set.reps);
                 if (weight > bestWeight) bestWeight = weight;
+                totalVolume += weight * reps;
             });
         });
         
+        const lastWorkout = exerciseData[exerciseData.length - 1];
+        const firstWorkout = exerciseData[0];
+        const improvement = bestWeight - Math.max(...firstWorkout.sets.map(set => parseFloat(set.weight)));
+        
         const chartHTML = `
-            <div style="width: 100%;">
-                <h3 style="margin-bottom: 20px;">${exerciseName} Progress</h3>
-                <div style="margin-bottom: 20px;">
-                    <strong>Total workouts:</strong> ${exerciseData.length}<br>
-                    <strong>Best weight:</strong> ${bestWeight}kg<br>
-                    <strong>Last workout:</strong> ${exerciseData[exerciseData.length - 1].date.toLocaleDateString()}
+            <div class="progress-container">
+                <div class="progress-header">
+                    <h3 class="exercise-title">${exerciseName}</h3>
+                    <div class="progress-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Workouts</span>
+                            <span class="stat-value">${totalWorkouts}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Best Weight</span>
+                            <span class="stat-value">${bestWeight}kg</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Improvement</span>
+                            <span class="stat-value ${improvement > 0 ? 'positive' : 'neutral'}">${improvement > 0 ? '+' : ''}${improvement.toFixed(1)}kg</span>
+                        </div>
+                    </div>
                 </div>
-                <div style="height: 200px; display: flex; align-items: end; gap: 4px; justify-content: center;">
-                    ${exerciseData.map((workout, index) => {
-                        // Find the highest weight from this workout
-                        const maxWeight = Math.max(...workout.sets.map(set => parseFloat(set.weight)));
-                        const height = (maxWeight / bestWeight) * 150;
-                        return `<div style="width: 20px; height: ${height}px; background: var(--primary-color); border-radius: 2px; position: relative;" title="${workout.date.toLocaleDateString()}: ${workout.sets.map(set => `${set.weight}kg × ${set.reps}`).join(', ')}"></div>`;
-                    }).join('')}
+                
+                <div class="chart-container">
+                    <div class="chart-bars">
+                        ${exerciseData.map((workout, index) => {
+                            const maxWeight = Math.max(...workout.sets.map(set => parseFloat(set.weight)));
+                            const height = bestWeight > 0 ? (maxWeight / bestWeight) * 100 : 0;
+                            const dateStr = workout.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            const setsInfo = workout.sets.map(set => `${set.weight}kg × ${set.reps}`).join(', ');
+                            
+                            return `
+                                <div class="chart-bar-container" data-workout="${index}">
+                                    <div class="chart-bar" style="height: ${height}%">
+                                        <div class="bar-value">${maxWeight}kg</div>
+                                    </div>
+                                    <div class="bar-date">${dateStr}</div>
+                                    <div class="bar-details">
+                                        <div class="bar-sets">${setsInfo}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
-                <div style="margin-top: 10px; font-size: 0.8rem; color: var(--text-secondary);">
-                    Weight progression over time
+                
+                <div class="progress-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">First Workout:</span>
+                        <span class="summary-value">${firstWorkout.date.toLocaleDateString()}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Last Workout:</span>
+                        <span class="summary-value">${lastWorkout.date.toLocaleDateString()}</span>
+                    </div>
                 </div>
             </div>
         `;
         
         chartContainer.innerHTML = chartHTML;
+        
+        // Add click handlers for mobile interaction
+        this.addProgressChartInteractions();
+    }
+    
+    addProgressChartInteractions() {
+        const barContainers = document.querySelectorAll('.chart-bar-container');
+        
+        barContainers.forEach((container, index) => {
+            container.addEventListener('click', () => {
+                // Toggle details visibility
+                const details = container.querySelector('.bar-details');
+                const isVisible = details.style.display === 'block';
+                
+                // Hide all other details
+                document.querySelectorAll('.bar-details').forEach(d => d.style.display = 'none');
+                document.querySelectorAll('.chart-bar-container').forEach(c => c.classList.remove('active'));
+                
+                // Toggle current details
+                if (!isVisible) {
+                    details.style.display = 'block';
+                    container.classList.add('active');
+                }
+            });
+            
+            // Add touch feedback
+            container.addEventListener('touchstart', () => {
+                container.classList.add('touching');
+            });
+            
+            container.addEventListener('touchend', () => {
+                container.classList.remove('touching');
+            });
+        });
+    }
+    
+    // Form data persistence methods
+    addFormDataListeners() {
+        // Add listeners to all input fields
+        const weightInputs = document.querySelectorAll('.weight-input');
+        const repsInputs = document.querySelectorAll('.reps-input');
+        
+        [...weightInputs, ...repsInputs].forEach(input => {
+            input.addEventListener('input', () => {
+                this.saveFormData();
+            });
+        });
+    }
+    
+    saveFormData() {
+        if (!this.isWorkoutActive || !this.currentProgram) return;
+        
+        const formData = {
+            program: this.currentProgram,
+            exercises: {}
+        };
+        
+        const program = this.programs[this.currentProgram];
+        program.exercises.forEach(exercise => {
+            const exerciseId = exercise.replace(/\s+/g, '-');
+            const setsContainer = document.getElementById(`sets-${exerciseId}`);
+            if (!setsContainer) return;
+            
+            const setsList = setsContainer.querySelector('.sets-list');
+            const setRows = setsList.querySelectorAll('.set-row');
+            
+            formData.exercises[exerciseId] = [];
+            
+            setRows.forEach(setRow => {
+                const weightInput = setRow.querySelector('.weight-input');
+                const repsInput = setRow.querySelector('.reps-input');
+                
+                if (weightInput && repsInput) {
+                    formData.exercises[exerciseId].push({
+                        weight: weightInput.value,
+                        reps: repsInput.value
+                    });
+                }
+            });
+        });
+        
+        localStorage.setItem('training-form-data', JSON.stringify(formData));
+    }
+    
+    loadFormData() {
+        if (!this.isWorkoutActive || !this.currentProgram) return;
+        
+        const stored = localStorage.getItem('training-form-data');
+        if (!stored) return;
+        
+        const formData = JSON.parse(stored);
+        if (formData.program !== this.currentProgram) return;
+        
+        // Restore form data
+        Object.keys(formData.exercises).forEach(exerciseId => {
+            const setsList = document.getElementById(`sets-list-${exerciseId}`);
+            if (!setsList) return;
+            
+            const sets = formData.exercises[exerciseId];
+            
+            // Clear existing sets
+            setsList.innerHTML = '';
+            
+            // Add sets with data
+            sets.forEach((setData, index) => {
+                const setNumber = index + 1;
+                const setRow = document.createElement('div');
+                setRow.className = 'set-row';
+                setRow.innerHTML = `
+                    <div class="set-number">${setNumber}</div>
+                    <div class="set-weight">
+                        <input type="number" class="weight-input" placeholder="0" min="0" step="0.5" data-exercise="${exerciseId}" data-set="${setNumber}" data-field="weight" value="${setData.weight}">
+                    </div>
+                    <div class="set-reps">
+                        <input type="number" class="reps-input" placeholder="0" min="0" data-exercise="${exerciseId}" data-set="${setNumber}" data-field="reps" value="${setData.reps}">
+                    </div>
+                    <div class="set-actions">
+                        <button class="btn-remove-set" onclick="app.removeSet(this, '${exerciseId}')" title="Remove set">✕</button>
+                    </div>
+                `;
+                
+                setsList.appendChild(setRow);
+            });
+            
+            // Add form listeners to restored inputs
+            this.addFormDataListeners();
+        });
     }
     
     loadWorkouts() {
@@ -616,6 +706,216 @@ class TrainingApp {
         setTimeout(() => {
             toast.remove();
         }, 3000);
+    }
+    
+    // Workout state persistence methods
+    loadWorkoutState() {
+        const stored = localStorage.getItem('training-workout-state');
+        return stored ? JSON.parse(stored) : null;
+    }
+    
+    saveWorkoutState() {
+        if (this.isWorkoutActive && this.currentProgram) {
+            const state = {
+                program: this.currentProgram,
+                startTime: this.workoutStartTime,
+                duration: this.workoutDuration,
+                isActive: this.isWorkoutActive,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('training-workout-state', JSON.stringify(state));
+        }
+    }
+    
+    clearWorkoutState() {
+        localStorage.removeItem('training-workout-state');
+    }
+    
+    checkForActiveWorkout() {
+        if (this.workoutState && this.workoutState.isActive) {
+            // Check if the workout state is recent (within last 24 hours)
+            const stateAge = Date.now() - this.workoutState.timestamp;
+            const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (stateAge < maxAge) {
+                // Show confirmation dialog
+                const confirmRestore = confirm(
+                    `You have an active workout session from ${new Date(this.workoutState.timestamp).toLocaleTimeString()}. ` +
+                    `Would you like to continue where you left off?`
+                );
+                
+                if (confirmRestore) {
+                    this.restoreWorkoutState();
+                } else {
+                    this.clearWorkoutState();
+                }
+            } else {
+                // State is too old, clear it
+                this.clearWorkoutState();
+            }
+        }
+    }
+    
+    restoreWorkoutState() {
+        if (!this.workoutState) return;
+        
+        this.currentProgram = this.workoutState.program;
+        this.isWorkoutActive = true;
+        this.workoutStartTime = this.workoutState.startTime;
+        this.workoutDuration = this.workoutState.duration;
+        
+        // Calculate elapsed time since last save
+        const timeSinceLastSave = Date.now() - this.workoutState.timestamp;
+        this.workoutDuration += timeSinceLastSave;
+        
+        // Restore the workout screen
+        const program = this.programs[this.currentProgram];
+        document.getElementById('workout-title').textContent = program.name;
+        this.renderWorkoutForm(program.exercises);
+        
+        // Restore form data after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            this.loadFormData();
+        }, 100);
+        
+        // Get and display last workout for this program
+        const lastWorkout = this.getLastWorkout(this.currentProgram);
+        this.renderLastWorkout(lastWorkout);
+        
+        this.showScreen('workout-screen');
+        
+        // Restart the workout timer
+        this.startWorkoutTimer();
+        
+        // Show restoration message
+        this.showToast('Workout session restored! 💪', 'success');
+    }
+    
+    // Override existing methods to include state saving
+    startWorkoutTimer() {
+        // Stop any existing timer
+        if (this.workoutTimer) {
+            this.stopWorkoutTimer();
+        }
+        
+        this.workoutStartTime = Date.now();
+        this.workoutDuration = 0;
+        
+        // Update timer every second
+        this.workoutTimer = setInterval(() => {
+            this.workoutDuration = Date.now() - this.workoutStartTime;
+            this.updateTimerDisplay();
+            this.saveWorkoutState(); // Save state every second
+        }, 1000);
+        
+        // Initial display update
+        this.updateTimerDisplay();
+    }
+    
+    stopWorkoutTimer() {
+        if (this.workoutTimer) {
+            clearInterval(this.workoutTimer);
+            this.workoutTimer = null;
+        }
+        
+        // Calculate final duration
+        if (this.workoutStartTime) {
+            this.workoutDuration = Date.now() - this.workoutStartTime;
+        }
+    }
+    
+    openWorkout(programId) {
+        this.currentProgram = programId;
+        this.isWorkoutActive = true; // Markera att träning är aktiv
+        const program = this.programs[programId];
+        
+        document.getElementById('workout-title').textContent = program.name;
+        this.renderWorkoutForm(program.exercises);
+        
+        // Get and display last workout for this program
+        const lastWorkout = this.getLastWorkout(programId);
+        this.renderLastWorkout(lastWorkout);
+        
+        this.showScreen('workout-screen');
+        
+        // Start the workout timer
+        this.startWorkoutTimer();
+        
+        // Save initial state
+        this.saveWorkoutState();
+    }
+    
+    saveWorkout() {
+        if (!this.currentProgram) return;
+        
+        // Lägg till bekräftelse innan sparande
+        const confirmSave = confirm('Är du säker på att du vill spara och avsluta denna träning? Detta kan inte ångras.');
+        if (!confirmSave) {
+            return;
+        }
+        
+        // Stop the workout timer
+        this.stopWorkoutTimer();
+        this.isWorkoutActive = false; // Markera att träning är avslutad
+        
+        const program = this.programs[this.currentProgram];
+        const workoutData = {
+            program: this.currentProgram,
+            programName: program.name,
+            date: new Date().toISOString(),
+            duration: this.workoutDuration,
+            exercises: []
+        };
+        
+        // Collect exercise data
+        program.exercises.forEach(exercise => {
+            const exerciseId = exercise.replace(/\s+/g, '-');
+            const setsContainer = document.getElementById(`sets-${exerciseId}`);
+            const setsList = setsContainer.querySelector('.sets-list');
+            const setRows = setsList.querySelectorAll('.set-row');
+            
+            const exerciseData = {
+                name: exercise,
+                sets: []
+            };
+            
+            setRows.forEach(setRow => {
+                const weightInput = setRow.querySelector('.weight-input');
+                const repsInput = setRow.querySelector('.reps-input');
+                
+                if (weightInput && repsInput) {
+                    const weight = weightInput.value;
+                    const reps = repsInput.value;
+                    
+                    if (weight || reps) {
+                        exerciseData.sets.push({
+                            weight: weight || '0',
+                            reps: reps || '0'
+                        });
+                    }
+                }
+            });
+            
+            if (exerciseData.sets.length > 0) {
+                workoutData.exercises.push(exerciseData);
+            }
+        });
+        
+        // Save workout
+        this.workouts.push(workoutData);
+        this.saveWorkouts();
+        
+        // Clear workout state and form data
+        this.clearWorkoutState();
+        localStorage.removeItem('training-form-data');
+        
+        // Show success message
+        this.showToast('Workout saved successfully! 💪', 'success');
+        
+        // Return to main menu
+        setTimeout(() => {
+            this.showScreen('main-menu');
+        }, 1500);
     }
 }
 
