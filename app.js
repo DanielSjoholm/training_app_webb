@@ -798,8 +798,11 @@ class TrainingApp {
             this.stopWorkoutTimer();
         }
         
-        this.workoutStartTime = Date.now();
-        this.workoutDuration = 0;
+        // Only reset timer if we don't have existing values (for new workouts)
+        if (!this.workoutStartTime) {
+            this.workoutStartTime = Date.now();
+            this.workoutDuration = 0;
+        }
         
         // Update timer every second
         this.workoutTimer = setInterval(() => {
@@ -827,6 +830,11 @@ class TrainingApp {
     openWorkout(programId) {
         this.currentProgram = programId;
         this.isWorkoutActive = true; // Markera att träning är aktiv
+        
+        // Reset timer for new workout (not restoration)
+        this.workoutStartTime = null;
+        this.workoutDuration = 0;
+        
         const program = this.programs[programId];
         
         document.getElementById('workout-title').textContent = program.name;
