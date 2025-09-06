@@ -595,6 +595,99 @@ body {
     font-size: 0.9rem;
 }
 
+/* Rest Timer Styles */
+.rest-timer-container {
+    background: var(--surface-dark);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 24px;
+    text-align: center;
+    border-left: 4px solid var(--accent-color);
+}
+
+.rest-timer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.rest-timer-header h3 {
+    color: var(--text-primary);
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.rest-timer-controls select {
+    background: var(--background-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.rest-timer-display {
+    margin-bottom: 20px;
+}
+
+.rest-timer-circle {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: var(--background-dark);
+    border: 3px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.rest-timer-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: conic-gradient(var(--primary-color) 0deg, transparent 0deg);
+    transition: background 0.1s ease;
+}
+
+.rest-timer-time {
+    position: relative;
+    z-index: 2;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+}
+
+.rest-timer-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.rest-timer-actions .btn {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    min-width: auto;
+}
+
+/* Rest timer states */
+.rest-timer-container.active {
+    border-left-color: var(--primary-color);
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.2);
+}
+
+.rest-timer-container.completed {
+    border-left-color: var(--success-color);
+}
+
 /* Progress chart styles */
 #progress-chart {
     background: var(--surface-dark);
@@ -956,6 +1049,36 @@ body {
     .summary-label,
     .summary-value {
         font-size: 0.8rem;
+    }
+    
+    /* Rest timer mobile styles */
+    .rest-timer-container {
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .rest-timer-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+    }
+    
+    .rest-timer-circle {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .rest-timer-time {
+        font-size: 1.2rem;
+    }
+    
+    .rest-timer-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .rest-timer-actions .btn {
+        width: 100%;
     }
 }
 

@@ -74,6 +74,34 @@
             
             <div class="workout-form">
                 <div id="last-workout-container"></div>
+                
+                <!-- Rest Timer -->
+                <div id="rest-timer-container" class="rest-timer-container" style="display: none;">
+                    <div class="rest-timer-header">
+                        <h3>⏱️ Rest Timer</h3>
+                        <div class="rest-timer-controls">
+                            <select id="rest-interval-select">
+                                <option value="30">30s</option>
+                                <option value="60">1min</option>
+                                <option value="90" selected>1.5min</option>
+                                <option value="120">2min</option>
+                                <option value="180">3min</option>
+                                <option value="300">5min</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="rest-timer-display">
+                        <div class="rest-timer-circle">
+                            <div class="rest-timer-time" id="rest-timer-time">1:30</div>
+                            <div class="rest-timer-progress" id="rest-timer-progress"></div>
+                        </div>
+                    </div>
+                    <div class="rest-timer-actions">
+                        <button class="btn btn-secondary" id="skip-rest-btn">Skip Rest</button>
+                        <button class="btn btn-primary" id="extend-rest-btn">+30s</button>
+                    </div>
+                </div>
+                
                 <div id="exercises-container"></div>
                 
                 <div class="form-actions">

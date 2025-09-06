@@ -8,6 +8,10 @@ class TrainingApp {
         this.workoutDuration = 0;
         this.isWorkoutActive = false; // Ny variabel för att spåra om träning pågår
         this.workoutState = this.loadWorkoutState(); // Persist workout state
+        this.restTimer = null;
+        this.restStartTime = null;
+        this.restDuration = 0;
+        this.restInterval = 90; // Default 90 seconds rest
         this.motivationalQuotes = [
             "Push yourself, because no one else is going to do it for you!",
             "The pain you feel today will be the strength you feel tomorrow.",
@@ -195,6 +199,13 @@ class TrainingApp {
         
         // Save workout
         document.getElementById('save-workout').addEventListener('click', () => this.saveWorkout());
+        
+        // Rest timer controls
+        document.getElementById('rest-interval-select').addEventListener('change', (e) => {
+            this.restInterval = parseInt(e.target.value);
+        });
+        document.getElementById('skip-rest-btn').addEventListener('click', () => this.skipRest());
+        document.getElementById('extend-rest-btn').addEventListener('click', () => this.extendRest());
         
         // Filters
         document.getElementById('program-filter').addEventListener('change', () => this.filterHistory());
@@ -587,6 +598,101 @@ class TrainingApp {
         });
     }
     
+    // Rest Timer Methods
+    startRestTimer() {
+        if (this.restTimer) {
+            this.stopRestTimer();
+        }
+        
+        this.restStartTime = Date.now();
+        this.restDuration = 0;
+        
+        // Show rest timer container
+        const container = document.getElementById('rest-timer-container');
+        container.style.display = 'block';
+        container.classList.add('active');
+        container.classList.remove('completed');
+        
+        // Update timer every second
+        this.restTimer = setInterval(() => {
+            this.restDuration = Date.now() - this.restStartTime;
+            this.updateRestTimerDisplay();
+            
+            // Check if rest is complete
+            if (this.restDuration >= this.restInterval * 1000) {
+                this.completeRest();
+            }
+        }, 100);
+        
+        // Initial display update
+        this.updateRestTimerDisplay();
+    }
+    
+    stopRestTimer() {
+        if (this.restTimer) {
+            clearInterval(this.restTimer);
+            this.restTimer = null;
+        }
+    }
+    
+    updateRestTimerDisplay() {
+        const timeElement = document.getElementById('rest-timer-time');
+        const progressElement = document.getElementById('rest-timer-progress');
+        
+        if (!timeElement || !progressElement) return;
+        
+        const remaining = Math.max(0, this.restInterval - Math.floor(this.restDuration / 1000));
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+        
+        timeElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Update progress circle
+        const progress = (this.restDuration / (this.restInterval * 1000)) * 100;
+        const degrees = Math.min(progress * 3.6, 360); // Convert to degrees
+        progressElement.style.background = `conic-gradient(var(--primary-color) ${degrees}deg, transparent ${degrees}deg)`;
+        
+        // Change color based on progress
+        if (progress >= 0.8) {
+            progressElement.style.background = `conic-gradient(var(--success-color) ${degrees}deg, transparent ${degrees}deg)`;
+        } else if (progress >= 0.6) {
+            progressElement.style.background = `conic-gradient(var(--accent-color) ${degrees}deg, transparent ${degrees}deg)`;
+        }
+    }
+    
+    completeRest() {
+        this.stopRestTimer();
+        
+        const container = document.getElementById('rest-timer-container');
+        container.classList.remove('active');
+        container.classList.add('completed');
+        
+        // Show completion message
+        this.showToast('Rest complete! Ready for next set 💪', 'success');
+        
+        // Hide rest timer after 3 seconds
+        setTimeout(() => {
+            container.style.display = 'none';
+        }, 3000);
+    }
+    
+    skipRest() {
+        this.stopRestTimer();
+        const container = document.getElementById('rest-timer-container');
+        container.style.display = 'none';
+        container.classList.remove('active', 'completed');
+    }
+    
+    extendRest() {
+        this.restInterval += 30; // Add 30 seconds
+        document.getElementById('rest-interval-select').value = this.restInterval;
+        
+        // Update display
+        this.updateRestTimerDisplay();
+        
+        this.showToast('Rest extended by 30 seconds', 'info');
+    }
+    
     // Form data persistence methods
     addFormDataListeners() {
         // Add listeners to all input fields
@@ -596,6 +702,16 @@ class TrainingApp {
         [...weightInputs, ...repsInputs].forEach(input => {
             input.addEventListener('input', () => {
                 this.saveFormData();
+                
+                // Check if this is a complete set (both weight and reps filled)
+                const setRow = input.closest('.set-row');
+                const weightInput = setRow.querySelector('.weight-input');
+                const repsInput = setRow.querySelector('.reps-input');
+                
+                if (weightInput.value && repsInput.value) {
+                    // Set is complete, start rest timer
+                    this.startRestTimer();
+                }
             });
         });
     }
@@ -835,6 +951,14 @@ class TrainingApp {
         this.workoutStartTime = null;
         this.workoutDuration = 0;
         
+        // Hide rest timer
+        this.stopRestTimer();
+        const restContainer = document.getElementById('rest-timer-container');
+        if (restContainer) {
+            restContainer.style.display = 'none';
+            restContainer.classList.remove('active', 'completed');
+        }
+        
         const program = this.programs[programId];
         
         document.getElementById('workout-title').textContent = program.name;
@@ -862,8 +986,9 @@ class TrainingApp {
             return;
         }
         
-        // Stop the workout timer
+        // Stop the workout timer and rest timer
         this.stopWorkoutTimer();
+        this.stopRestTimer();
         this.isWorkoutActive = false; // Markera att träning är avslutad
         
         const program = this.programs[this.currentProgram];
