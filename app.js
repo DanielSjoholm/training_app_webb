@@ -65,17 +65,18 @@ class TrainingApp {
             'abs': {
                 name: 'Abs',
                 exercises: [
-                    'Rope Curls'
+                    'Rope Curls',
+                    'Toes To Bar'
                 ]
             },
             'arms': {
                 name: 'Arms',
                 exercises: [
-                    'Biceps Curl',
                     'Curl Cable Front',
                     'Curl Cable Back',
+                    'Hammer Curls',
                     'Triceps Pushdown',
-                    'Overhead Triceps Ext'
+                    'OverHead Tricpes Ext'
                 ]
             },
             'chest': {
@@ -204,6 +205,8 @@ class TrainingApp {
         document.getElementById('rest-interval-select').addEventListener('change', (e) => {
             this.restInterval = parseInt(e.target.value);
         });
+        document.getElementById('start-rest-btn').addEventListener('click', () => this.startRestTimer());
+        document.getElementById('reset-rest-btn').addEventListener('click', () => this.resetRestTimer());
         document.getElementById('skip-rest-btn').addEventListener('click', () => this.skipRest());
         document.getElementById('extend-rest-btn').addEventListener('click', () => this.extendRest());
         
@@ -599,6 +602,56 @@ class TrainingApp {
     }
     
     // Rest Timer Methods
+    initializeRestTimer() {
+        // Show rest timer container
+        const container = document.getElementById('rest-timer-container');
+        container.style.display = 'block';
+        container.classList.remove('active', 'completed');
+        
+        // Reset timer display to show full time
+        const timeElement = document.getElementById('rest-timer-time');
+        const progressElement = document.getElementById('rest-timer-progress');
+        
+        if (timeElement && progressElement) {
+            const minutes = Math.floor(this.restInterval / 60);
+            const seconds = this.restInterval % 60;
+            timeElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Reset progress circle
+            progressElement.style.background = `conic-gradient(transparent 0deg, transparent 0deg)`;
+        }
+        
+        // Update button states
+        this.updateRestTimerButtons('ready');
+    }
+    
+    updateRestTimerButtons(state) {
+        const startBtn = document.getElementById('start-rest-btn');
+        const resetBtn = document.getElementById('reset-rest-btn');
+        const skipBtn = document.getElementById('skip-rest-btn');
+        const extendBtn = document.getElementById('extend-rest-btn');
+        
+        if (state === 'ready') {
+            // Show start and reset buttons, hide skip and extend
+            if (startBtn) startBtn.style.display = 'inline-block';
+            if (resetBtn) resetBtn.style.display = 'inline-block';
+            if (skipBtn) skipBtn.style.display = 'none';
+            if (extendBtn) extendBtn.style.display = 'none';
+        } else if (state === 'running') {
+            // Show reset, skip, and extend buttons, hide start
+            if (startBtn) startBtn.style.display = 'none';
+            if (resetBtn) resetBtn.style.display = 'inline-block';
+            if (skipBtn) skipBtn.style.display = 'inline-block';
+            if (extendBtn) extendBtn.style.display = 'inline-block';
+        } else if (state === 'completed') {
+            // Hide all buttons
+            if (startBtn) startBtn.style.display = 'none';
+            if (resetBtn) resetBtn.style.display = 'none';
+            if (skipBtn) skipBtn.style.display = 'none';
+            if (extendBtn) extendBtn.style.display = 'none';
+        }
+    }
+    
     startRestTimer() {
         if (this.restTimer) {
             this.stopRestTimer();
@@ -612,6 +665,9 @@ class TrainingApp {
         container.style.display = 'block';
         container.classList.add('active');
         container.classList.remove('completed');
+        
+        // Update button states
+        this.updateRestTimerButtons('running');
         
         // Update timer every second
         this.restTimer = setInterval(() => {
@@ -667,20 +723,49 @@ class TrainingApp {
         container.classList.remove('active');
         container.classList.add('completed');
         
+        // Update button states
+        this.updateRestTimerButtons('completed');
+        
         // Show completion message
         this.showToast('Rest complete! Ready for next set 💪', 'success');
         
-        // Hide rest timer after 3 seconds
+        // Reset to ready state after 3 seconds instead of hiding
         setTimeout(() => {
-            container.style.display = 'none';
+            container.classList.remove('completed');
+            this.initializeRestTimer();
         }, 3000);
+    }
+    
+    resetRestTimer() {
+        this.stopRestTimer();
+        
+        // Reset timer display to show full time
+        const timeElement = document.getElementById('rest-timer-time');
+        const progressElement = document.getElementById('rest-timer-progress');
+        
+        if (timeElement && progressElement) {
+            const minutes = Math.floor(this.restInterval / 60);
+            const seconds = this.restInterval % 60;
+            timeElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Reset progress circle
+            progressElement.style.background = `conic-gradient(transparent 0deg, transparent 0deg)`;
+        }
+        
+        // Update button states
+        this.updateRestTimerButtons('ready');
+        
+        // Show reset message
+        this.showToast('Rest timer reset', 'info');
     }
     
     skipRest() {
         this.stopRestTimer();
         const container = document.getElementById('rest-timer-container');
-        container.style.display = 'none';
         container.classList.remove('active', 'completed');
+        
+        // Reset to ready state instead of hiding
+        this.initializeRestTimer();
     }
     
     extendRest() {
@@ -709,8 +794,8 @@ class TrainingApp {
                 const repsInput = setRow.querySelector('.reps-input');
                 
                 if (weightInput.value && repsInput.value) {
-                    // Set is complete, start rest timer
-                    this.startRestTimer();
+                    // Set is complete - rest timer is already visible
+                    // No need to show it again
                 }
             });
         });
@@ -889,6 +974,9 @@ class TrainingApp {
         document.getElementById('workout-title').textContent = program.name;
         this.renderWorkoutForm(program.exercises);
         
+        // Initialize rest timer
+        this.initializeRestTimer();
+        
         // Restore form data after a short delay to ensure DOM is ready
         setTimeout(() => {
             this.loadFormData();
@@ -951,13 +1039,9 @@ class TrainingApp {
         this.workoutStartTime = null;
         this.workoutDuration = 0;
         
-        // Hide rest timer
+        // Initialize rest timer
         this.stopRestTimer();
-        const restContainer = document.getElementById('rest-timer-container');
-        if (restContainer) {
-            restContainer.style.display = 'none';
-            restContainer.classList.remove('active', 'completed');
-        }
+        this.initializeRestTimer();
         
         const program = this.programs[programId];
         

@@ -76,7 +76,7 @@
                 <div id="last-workout-container"></div>
                 
                 <!-- Rest Timer -->
-                <div id="rest-timer-container" class="rest-timer-container" style="display: none;">
+                <div id="rest-timer-container" class="rest-timer-container">
                     <div class="rest-timer-header">
                         <h3>⏱️ Rest Timer</h3>
                         <div class="rest-timer-controls">
@@ -97,8 +97,10 @@
                         </div>
                     </div>
                     <div class="rest-timer-actions">
-                        <button class="btn btn-secondary" id="skip-rest-btn">Skip Rest</button>
-                        <button class="btn btn-primary" id="extend-rest-btn">+30s</button>
+                        <button class="btn btn-primary" id="start-rest-btn" style="display: none;">Start Rest</button>
+                        <button class="btn btn-secondary" id="reset-rest-btn" style="display: none;">Reset</button>
+                        <button class="btn btn-secondary" id="skip-rest-btn" style="display: none;">Skip Rest</button>
+                        <button class="btn btn-primary" id="extend-rest-btn" style="display: none;">+30s</button>
                     </div>
                 </div>
                 
