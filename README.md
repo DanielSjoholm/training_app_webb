@@ -1,156 +1,66 @@
-# Training Tracker - Mobile Workout App
+# Training Tracker
 
-A modern, mobile-friendly web application for tracking your workouts and progress. Built with vanilla HTML, CSS, and JavaScript, this Progressive Web App (PWA) provides the same functionality as your tkinter desktop app but optimized for mobile use.
+A mobile-first Progressive Web App (PWA) for logging workouts, tracking sets and weights, and visualizing strength progression over time. No account needed — works offline and installs directly to your home screen.
 
-## 🚀 Features
+## Features
 
-### Core Functionality
-- **4 Training Programs**: Chest & Triceps, Shoulder & Biceps, Back, and Legs
-- **Exercise Tracking**: Record weight, reps, and sets for each exercise
-- **Workout History**: View all your saved workouts with filtering options
-- **Progress Tracking**: Visual charts showing your strength progression over time
-- **Mobile-First Design**: Optimized for phone use during workouts
+- **7 training programs** — Chest & Triceps, Shoulder & Biceps, PullPass, Legs, Abs, Arms, Chest
+- **Set logging** — record weight (kg) and reps per set, add or remove sets freely
+- **Rest timer** — configurable countdown (30s–5min) with circular progress display
+- **Workout timer** — tracks total session duration
+- **Session recovery** — auto-saves in-progress workouts, restores them within 24 hours on reload
+- **History** — browse all past workouts, filter by program, delete entries
+- **Progress charts** — visualize max weight over time per exercise
+- **Offline support** — fully functional without internet after first load
 
-### Technical Features
-- **Progressive Web App**: Install on your phone like a native app
-- **Offline Support**: Works without internet connection
-- **Local Storage**: All data stored locally on your device
-- **Responsive Design**: Adapts to any screen size
-- **Dark Theme**: Easy on the eyes during workouts
+## Stack
 
-## 📱 How to Use
+Vanilla JS (ES modules) · CSS custom properties · PWA (service worker) · localStorage — no framework, no build step, no dependencies.
 
-### 1. Access the App
-- Open the app in your phone's web browser
-- Or install it as a PWA for app-like experience
+## Getting started
 
-### 2. Start a Workout
-- Choose your training program from the main menu
-- Enter weight, reps, and sets for each exercise
-- Save your workout when finished
-
-### 3. Track Progress
-- View workout history with filtering options
-- Check progress charts for specific exercises
-- Monitor your strength improvements over time
-
-## 🛠️ Setup & Installation
-
-### Option 1: Local Development Server
 ```bash
-# Navigate to the project directory
-cd training_app_webb
-
-# Start a local server (Python 3)
+# Python
 python -m http.server 8000
 
-# Or use Node.js if available
+# or Node
 npx serve .
-
-# Open in browser: http://localhost:8000
 ```
 
-### Option 2: Deploy to Web Server
-1. Upload all files to your web server
-2. Ensure HTTPS is enabled (required for PWA features)
-3. Access via your domain
+Open `http://localhost:8000`. PWA install prompt appears automatically in Chrome/Edge on Android, and via Share → Add to Home Screen in Safari on iOS.
 
-### Option 3: GitHub Pages
-1. Push code to GitHub repository
-2. Enable GitHub Pages in repository settings
-3. Access via `https://username.github.io/repository-name`
+> **Note:** Service worker and install prompt require HTTPS in production.
 
-## 📁 File Structure
+## Project structure
 
 ```
-training_app_webb/
-├── index.html          # Main HTML file
-├── styles.css          # CSS styles and responsive design
-├── app.js             # Main JavaScript application
-├── manifest.json      # PWA manifest for mobile installation
-├── sw.js             # Service worker for offline functionality
-├── README.md          # This file
-└── programs/          # Original tkinter program files
-    ├── chest_triceps.py
-    ├── shoulder_biceps.py
-    ├── back.py
-    └── legs.py
+├── index.html          # App shell — four screens, always in DOM
+├── styles.css          # All styles, dark theme via CSS variables
+├── manifest.json       # PWA metadata and icons
+├── sw.js               # Cache-first service worker
+└── js/
+    ├── main.js         # Entry point — boots app, registers SW
+    ├── app.js          # TrainingApp class — all UI and screen logic
+    ├── programs.js     # Training program definitions (edit here to add exercises)
+    └── storage.js      # localStorage wrapper for the three storage keys
 ```
 
-## 🔧 Configuration
+## Customizing programs
 
-### Customizing Exercises
-Edit the `programs` object in `app.js` to modify:
-- Exercise names
-- Number of exercises per program
-- Program names and descriptions
+Edit `js/programs.js` to add, rename, or remove programs and exercises. When changing a program key or name, also update the corresponding button in `index.html` and the filter `<select>` in the history screen.
 
-### Styling
-Modify `styles.css` to customize:
-- Color scheme (CSS variables in `:root`)
-- Layout and spacing
-- Typography and visual elements
+## Data
 
-## 📊 Data Storage
+All data is stored in `localStorage` under three keys:
 
-- **Local Storage**: All workout data is stored in your browser's local storage
-- **No Server Required**: Works completely offline
-- **Data Persistence**: Your workouts are saved between sessions
-- **Export/Import**: Data can be exported via browser developer tools
+| Key | Contents |
+|-----|----------|
+| `training-workouts` | Array of completed workout objects |
+| `training-form-data` | Auto-saved in-progress form state |
+| `training-workout-state` | Active session state for 24h recovery |
 
-## 🌐 Browser Compatibility
+Data is tied to the browser — clearing site data will erase workouts. Cloud sync via Supabase is planned (see `CLAUDE.md`).
 
-- **Modern Browsers**: Chrome, Firefox, Safari, Edge (latest versions)
-- **Mobile Browsers**: iOS Safari, Chrome Mobile, Samsung Internet
-- **PWA Support**: Chrome, Edge, Safari (iOS 11.3+)
+## Browser support
 
-## 🚀 PWA Installation
-
-### Android (Chrome)
-1. Open the app in Chrome
-2. Tap the menu (⋮) → "Add to Home screen"
-3. Follow the prompts to install
-
-### iOS (Safari)
-1. Open the app in Safari
-2. Tap the share button (□↑)
-3. Select "Add to Home Screen"
-4. Tap "Add"
-
-## 🔒 Privacy & Security
-
-- **No Data Collection**: All data stays on your device
-- **No Analytics**: No tracking or external services
-- **Local Only**: No internet connection required after initial load
-- **Open Source**: Transparent code for security review
-
-## 🎯 Future Enhancements
-
-- [ ] Exercise library with descriptions and form tips
-- [ ] Rest timer functionality
-- [ ] Workout templates and routines
-- [ ] Data export/import functionality
-- [ ] Social sharing of achievements
-- [ ] Integration with fitness trackers
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📝 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 💪 Motivation
-
-Remember: "The only bad workout is the one that didn't happen." 
-
-Track your progress, stay consistent, and watch yourself grow stronger every day!
-
----
-
-**Built with ❤️ for fitness enthusiasts who want to track their progress on the go.**
+Chrome, Firefox, Safari, Edge (latest). PWA install: Chrome/Edge on Android, Safari 11.3+ on iOS.
