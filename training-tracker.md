@@ -38,13 +38,19 @@ Running record of what's been built and what's next. Update this at the end of e
 - Corrected the **Arms** category label to Push / Pull.
 - Fixed the bug where an in-progress workout was lost when backgrounding the app: `onAuthStateChange` now ignores `SIGNED_IN` on resume/token-refresh (same user) and only resets state on a genuine new login/logout.
 
+### Customizable workouts + exercise variants
+- New master **exercise catalog** (`js/exercises.js`) — every exercise tagged with muscle group(s); cable/equipment exercises carry variants (e.g. Triceps Pushdown → Bar / Rope / Handle).
+- In a workout you can **remove** exercises (✕) and **add** from a picker filtered to the program's muscle groups; variant exercises prompt for the attachment.
+- The customised list is **saved per program per user** (`profiles.program_exercises` jsonb) and becomes that program's new default next time.
+- Program defaults and the workout-resume state were aligned to catalog names and now carry the exercise list.
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)
 
 **Tables** (all RLS-enabled, scoped to `auth.uid()`):
 - `workouts` — program, program_name, date, duration, exercises (jsonb)
-- `profiles` — id (= user id), name, birthdate, gender, height, current_weight, goal_weight, weekly_goal, avatar_url
+- `profiles` — id (= user id), name, birthdate, gender, height, current_weight, goal_weight, weekly_goal, avatar_url, program_exercises (jsonb: per-program custom exercise lists)
 - `weight_logs` — user_id, weight, date
 
 **Storage:**
@@ -56,17 +62,6 @@ Running record of what's been built and what's next. Update this at the end of e
 ---
 
 ## TODO / Next
-
-### Customizable workouts
-- Selecting a program still loads its default ("std") exercises (e.g. Chest & Triceps → Bench Press, Incline Press, PeckDeck).
-- Let the user customize the loaded workout: **remove** exercises and **add** exercises from a list.
-- The add-list must be filtered to the program's muscle groups (e.g. a Chest & Triceps workout only offers chest/triceps exercises), drawn from a master catalog that contains **all** exercises.
-- Data model: introduce an exercise catalog (name + muscle group tags + default-in-which-programs). Programs reference their defaults from it; the picker filters by muscle group.
-
-### Exercise variants (equipment)
-- Some exercises have equipment variants. When adding such an exercise, prompt the user to choose one.
-- Example — "Biceps Curls": Dumbbells, Cable bar front, Cable bar back, Cable handle front, Cable handle back.
-- Store the chosen variant with the logged exercise so history and progress track each variant distinctly.
 
 ### Rest timer alarm — sound + vibration (incl. background)
 - Want an audible alarm (headphones/phone) and/or vibration when the rest timer ends, even while the user is in another app.
