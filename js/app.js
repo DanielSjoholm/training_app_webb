@@ -6,7 +6,7 @@ import {
     fetchWorkoutsFromCloud, saveWorkoutToCloud, deleteWorkoutFromCloud,
     fetchProfile, saveProfile, fetchWeightLogs, addWeightLog, uploadAvatar
 } from './storage.js';
-import { signIn, signUp, signOut, getSession, onAuthStateChange, getUser } from './auth.js';
+import { signIn, signUp, signOut, getSession, onAuthStateChange, getUser, updatePassword, deleteAccount } from './auth.js';
 
 export class TrainingApp {
     constructor() {
@@ -365,6 +365,83 @@ export class TrainingApp {
         `;
     }
 
+    // --- Settings ---
+
+    openSettings() {
+        this.showScreen('settings-screen');
+        this.syncThemeToggle();
+        document.getElementById('password-message').textContent = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-password').value = '';
+    }
+
+    currentTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    }
+
+    syncThemeToggle() {
+        const theme = this.currentTheme();
+        document.querySelectorAll('#theme-toggle .theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === theme);
+        });
+    }
+
+    setTheme(theme) {
+        if (theme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+        localStorage.setItem('training-theme', theme);
+        this.syncThemeToggle();
+    }
+
+    async changePassword() {
+        const password = document.getElementById('new-password').value;
+        const confirm = document.getElementById('confirm-password').value;
+        const message = document.getElementById('password-message');
+
+        if (password.length < 6) {
+            message.style.color = '';
+            message.textContent = 'Password must be at least 6 characters.';
+            return;
+        }
+        if (password !== confirm) {
+            message.style.color = '';
+            message.textContent = 'Passwords do not match.';
+            return;
+        }
+
+        try {
+            await updatePassword(password);
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+            message.textContent = '';
+            this.showToast('Password updated', 'success');
+        } catch (e) {
+            message.style.color = '';
+            message.textContent = e.message;
+        }
+    }
+
+    async deleteAccountFlow() {
+        const ok = await this.showConfirm({
+            title: 'Delete account?',
+            message: 'This permanently deletes your account and all your data. This cannot be undone.',
+            confirmText: 'Delete account',
+            cancelText: 'Cancel',
+            danger: true
+        });
+        if (!ok) return;
+
+        try {
+            await deleteAccount();
+            this.showToast('Account deleted', 'success');
+        } catch {
+            this.showToast('Could not delete account', 'error');
+        }
+    }
+
     // --- Core ---
 
     formatDuration(milliseconds) {
@@ -451,6 +528,10 @@ export class TrainingApp {
             this.closeAccountMenu();
             this.openProfile();
         });
+        document.getElementById('menu-settings').addEventListener('click', () => {
+            this.closeAccountMenu();
+            this.openSettings();
+        });
         document.getElementById('menu-logout').addEventListener('click', () => {
             this.closeAccountMenu();
             this.handleLogout();
@@ -468,6 +549,17 @@ export class TrainingApp {
             document.getElementById('avatar-file').click();
         });
         document.getElementById('avatar-file').addEventListener('change', (e) => this.handleAvatarUpload(e));
+
+        // Settings
+        document.getElementById('back-from-settings').addEventListener('click', () => this.showScreen('main-menu'));
+        document.querySelectorAll('#theme-toggle .theme-option').forEach(btn => {
+            btn.addEventListener('click', () => this.setTheme(btn.dataset.theme));
+        });
+        document.getElementById('password-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.changePassword();
+        });
+        document.getElementById('delete-account-btn').addEventListener('click', () => this.deleteAccountFlow());
 
         document.getElementById('rest-interval-select').addEventListener('change', (e) => {
             this.restInterval = parseInt(e.target.value);
