@@ -52,6 +52,28 @@ Running record of what's been built and what's next. Update this at the end of e
 
 ## TODO / Next
 
+### BUG (priority): active workout lost when app is backgrounded (mobile)
+- **Symptom:** Switching to another app (Spotify/Instagram), locking the phone, or otherwise backgrounding the PWA and reopening it returns to the program-select start screen — the in-progress workout is gone and has to be restarted. Happens every time.
+- **Likely root cause:** `onAuthStateChange` in `init()` fires `SIGNED_IN` not only on real login but also when Supabase resumes the session / refreshes the token on resume. Its handler calls `clearWorkoutState()` and `showScreen('main-menu')`, wiping the saved session and kicking the user to the menu before/after `checkForActiveWorkout()` can restore it.
+- **Fix direction:** Only clear workout state on an *explicit* user login/logout — not on automatic `INITIAL_SESSION` / `TOKEN_REFRESHED` / resume events. Guard the main-menu redirect so it never interrupts an active or restorable workout. Verify the `training-workout-state` restore path actually runs on mobile resume.
+
+### Customizable workouts
+- Selecting a program still loads its default ("std") exercises (e.g. Chest & Triceps → Bench Press, Incline Press, PeckDeck).
+- Let the user customize the loaded workout: **remove** exercises and **add** exercises from a list.
+- The add-list must be filtered to the program's muscle groups (e.g. a Chest & Triceps workout only offers chest/triceps exercises), drawn from a master catalog that contains **all** exercises.
+- Data model: introduce an exercise catalog (name + muscle group tags + default-in-which-programs). Programs reference their defaults from it; the picker filters by muscle group.
+
+### Exercise variants (equipment)
+- Some exercises have equipment variants. When adding such an exercise, prompt the user to choose one.
+- Example — "Biceps Curls": Dumbbells, Cable bar front, Cable bar back, Cable handle front, Cable handle back.
+- Store the chosen variant with the logged exercise so history and progress track each variant distinctly.
+
+### Rest timer alarm — sound + vibration (incl. background)
+- Want an audible alarm (headphones/phone) and/or vibration when the rest timer ends, even while the user is in another app.
+- **Reality check:** Backgrounded web pages are throttled/suspended (especially iOS Safari) — JS timers and Web Audio don't run reliably and a backgrounded tab generally can't vibrate or play sound. This is the same underlying constraint as the background-workout bug above.
+- **Web-only partial options:** schedule a `Notification` via the service worker (supports a vibration pattern on Android), and pre-load/play an audio element on completion while foregrounded. Cross-app reliability on iOS is poor.
+- **Robust solution:** ties to the native-app path (Capacitor) — local notifications + background audio can fire while the user is in another app.
+
 ### Social — friends and sharing
 Add friends and view their workouts.
 - `friendships` table in Supabase with `user_id`, `friend_id`, status (pending/accepted)
