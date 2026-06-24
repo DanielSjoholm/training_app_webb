@@ -62,6 +62,39 @@ Defined and exported from `js/programs.js`. The key matches the `data-program` a
 
 CSS custom properties are declared on `:root` in `styles.css` — always use variables for colors rather than hardcoded values. The rest timer's circular countdown is rendered via `conic-gradient` on `.rest-timer-progress`; the JS updates the `background` property directly on that element.
 
+## Rules
+
+### Branch workflow
+
+- **Never develop on `main`.** If the current branch is `main`, stop and ask the user to create or switch to a feature branch before writing any code.
+- All work must be done on a feature branch (e.g. `feature/my-change`).
+- `main` is the production branch — it deploys on every merge.
+
+### Committing
+
+- Commit at logical milestones (after a completed feature, bug fix, or self-contained refactor).
+- After significant work, suggest a commit by showing the list of changed files and the intended commit message — wait for confirmation before executing.
+- Commit messages must describe *what changed and why*, not just *what was done* (e.g. `feat: add rest timer` rather than `updated app`).
+- Never add `Co-Authored-By` or any reference to Claude, Anthropic, or AI in commit messages.
+
+### Pushing
+
+- Always ask for explicit approval before running `git push`.
+- Before pushing, present: the branch name, the commits that will be pushed, and any other Git actions (e.g. setting upstream).
+- Never force-push without explicit user instruction.
+- Never stage or push `.claude/` or any Claude-specific local files.
+
+### Pre-action summary
+
+Before any commit or push, state:
+1. Which files are being staged
+2. The exact commit message
+3. The Git command(s) that will run
+
+Wait for confirmation before proceeding.
+
+---
+
 ## TODO
 
 ### Cloud-backed data persistence (Supabase)
