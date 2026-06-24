@@ -1,5 +1,5 @@
 // Service Worker for Training Tracker App
-const CACHE_NAME = 'training-tracker-v10';
+const CACHE_NAME = 'training-tracker-v11';
 const urlsToCache = [
     '/',
     '/index.html',

@@ -33,6 +33,11 @@ Running record of what's been built and what's next. Update this at the end of e
 - Change password.
 - Delete account (calls a `security definer` SQL function, cascades all user data).
 
+### Program tweaks + resume bug fix
+- Added standalone **Shoulder** (Shoulder Press, Lateral Raise, Reverse Flies) and **Glutes** (Hip Thrusters, Bulgarian Split Squat, Romanian Deadlift) programs.
+- Corrected the **Arms** category label to Push / Pull.
+- Fixed the bug where an in-progress workout was lost when backgrounding the app: `onAuthStateChange` now ignores `SIGNED_IN` on resume/token-refresh (same user) and only resets state on a genuine new login/logout.
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)
@@ -51,11 +56,6 @@ Running record of what's been built and what's next. Update this at the end of e
 ---
 
 ## TODO / Next
-
-### BUG (priority): active workout lost when app is backgrounded (mobile)
-- **Symptom:** Switching to another app (Spotify/Instagram), locking the phone, or otherwise backgrounding the PWA and reopening it returns to the program-select start screen — the in-progress workout is gone and has to be restarted. Happens every time.
-- **Likely root cause:** `onAuthStateChange` in `init()` fires `SIGNED_IN` not only on real login but also when Supabase resumes the session / refreshes the token on resume. Its handler calls `clearWorkoutState()` and `showScreen('main-menu')`, wiping the saved session and kicking the user to the menu before/after `checkForActiveWorkout()` can restore it.
-- **Fix direction:** Only clear workout state on an *explicit* user login/logout — not on automatic `INITIAL_SESSION` / `TOKEN_REFRESHED` / resume events. Guard the main-menu redirect so it never interrupts an active or restorable workout. Verify the `training-workout-state` restore path actually runs on mobile resume.
 
 ### Customizable workouts
 - Selecting a program still loads its default ("std") exercises (e.g. Chest & Triceps → Bench Press, Incline Press, PeckDeck).
