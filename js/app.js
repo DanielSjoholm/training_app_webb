@@ -100,8 +100,14 @@ export class TrainingApp {
 
     async handleLogout() {
         if (this.isWorkoutActive) {
-            const confirm = window.confirm('Du har en aktiv träning. Vill du verkligen logga ut?');
-            if (!confirm) return;
+            const ok = await this.showConfirm({
+                title: 'Log out?',
+                message: 'You have an active workout. Are you sure you want to log out?',
+                confirmText: 'Log out',
+                cancelText: 'Cancel',
+                danger: true
+            });
+            if (!ok) return;
         }
         try {
             await signOut();
@@ -182,7 +188,7 @@ export class TrainingApp {
 
         document.getElementById('history-btn').addEventListener('click', () => this.showScreen('history-screen'));
         document.getElementById('progress-btn').addEventListener('click', () => this.showScreen('progress-screen'));
-        document.getElementById('back-to-menu').addEventListener('click', () => this.showScreen('main-menu'));
+        document.getElementById('back-to-menu').addEventListener('click', () => this.exitWorkout());
         document.getElementById('back-from-history').addEventListener('click', () => this.showScreen('main-menu'));
         document.getElementById('back-from-progress').addEventListener('click', () => this.showScreen('main-menu'));
         document.getElementById('save-workout').addEventListener('click', () => this.saveWorkout());
@@ -211,20 +217,24 @@ export class TrainingApp {
         document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
 
-        if (screenId === 'main-menu' && this.workoutTimer) {
-            if (this.isWorkoutActive) {
-                const confirmExit = confirm('Du har en aktiv träning som inte är sparad. Är du säker på att du vill avsluta?');
-                if (!confirmExit) {
-                    this.showScreen('workout-screen');
-                    return;
-                }
-            }
-            this.stopWorkoutTimer();
-            this.isWorkoutActive = false;
-        }
-
         if (screenId === 'history-screen') this.loadHistory();
         else if (screenId === 'progress-screen') this.loadProgress();
+    }
+
+    async exitWorkout() {
+        if (this.isWorkoutActive) {
+            const ok = await this.showConfirm({
+                title: 'Leave workout?',
+                message: 'You have an active workout that hasn\'t been saved. Are you sure you want to leave?',
+                confirmText: 'Leave',
+                cancelText: 'Stay',
+                danger: true
+            });
+            if (!ok) return;
+        }
+        this.stopWorkoutTimer();
+        this.isWorkoutActive = false;
+        this.showScreen('main-menu');
     }
 
     showRandomQuote() {
@@ -361,7 +371,14 @@ export class TrainingApp {
     }
 
     async deleteWorkout(workoutId) {
-        if (!confirm('Are you sure you want to delete this workout? This action cannot be undone.')) return;
+        const ok = await this.showConfirm({
+            title: 'Delete workout?',
+            message: 'This action cannot be undone.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            danger: true
+        });
+        if (!ok) return;
 
         try {
             await deleteWorkoutFromCloud(workoutId);
@@ -718,15 +735,18 @@ export class TrainingApp {
 
     // --- Workout state persistence ---
 
-    checkForActiveWorkout() {
+    async checkForActiveWorkout() {
         if (this.workoutState && this.workoutState.isActive) {
             const stateAge = Date.now() - this.workoutState.timestamp;
             if (stateAge < 24 * 60 * 60 * 1000) {
-                const confirmRestore = confirm(
-                    `You have an active workout session from ${new Date(this.workoutState.timestamp).toLocaleTimeString()}. ` +
-                    `Would you like to continue where you left off?`
-                );
-                if (confirmRestore) this.restoreWorkoutState();
+                const time = new Date(this.workoutState.timestamp).toLocaleTimeString();
+                const ok = await this.showConfirm({
+                    title: 'Resume workout?',
+                    message: `You have an active workout session from ${time}. Would you like to continue where you left off?`,
+                    confirmText: 'Resume',
+                    cancelText: 'Discard'
+                });
+                if (ok) this.restoreWorkoutState();
                 else clearWorkoutState();
             } else {
                 clearWorkoutState();
@@ -820,7 +840,12 @@ export class TrainingApp {
     async saveWorkout() {
         if (!this.currentProgram) return;
 
-        const confirmSave = confirm('Är du säker på att du vill spara och avsluta denna träning?');
+        const confirmSave = await this.showConfirm({
+            title: 'Save workout?',
+            message: 'This will save and end your current workout.',
+            confirmText: 'Save',
+            cancelText: 'Cancel'
+        });
         if (!confirmSave) return;
 
         this.stopWorkoutTimer();
@@ -882,5 +907,40 @@ export class TrainingApp {
         toast.textContent = message;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
+    }
+
+    showConfirm({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', danger = false }) {
+        return new Promise(resolve => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal" role="dialog" aria-modal="true">
+                    <h3 class="modal-title">${title}</h3>
+                    <p class="modal-message">${message}</p>
+                    <div class="modal-actions">
+                        <button class="btn modal-cancel">${cancelText}</button>
+                        <button class="btn ${danger ? 'btn-danger' : 'btn-primary'} modal-confirm">${confirmText}</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            requestAnimationFrame(() => overlay.classList.add('visible'));
+
+            const close = (result) => {
+                overlay.classList.remove('visible');
+                setTimeout(() => overlay.remove(), 200);
+                document.removeEventListener('keydown', onKey);
+                resolve(result);
+            };
+            const onKey = (e) => {
+                if (e.key === 'Escape') close(false);
+                else if (e.key === 'Enter') close(true);
+            };
+
+            overlay.querySelector('.modal-confirm').addEventListener('click', () => close(true));
+            overlay.querySelector('.modal-cancel').addEventListener('click', () => close(false));
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+            document.addEventListener('keydown', onKey);
+        });
     }
 }
