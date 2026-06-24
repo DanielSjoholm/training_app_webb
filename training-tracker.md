@@ -84,10 +84,11 @@ Deferred from the Settings work. Let users switch measurement system; store the 
 From earlier discussion: the Supabase backend carries over fully. Lowest-effort path to the App Store / Play Store is **Capacitor** — wraps the existing web app in a native shell, so the current frontend ships largely as-is. (React Native/Flutter would be a rewrite.)
 
 ### Custom domain
+**Best done together with the native-app step** — once we go native, the domain stops being "the app" and becomes the landing page + policy/support pages + auth/deep-link host. Not urgent on its own; only do it sooner if we want to share the web/PWA version in the meantime.
 - Buy a domain (e.g. Namecheap or Cloudflare)
-- Point DNS at the host
-- Enable HTTPS (required for PWA service worker + install prompt)
+- Point DNS at the host; enable HTTPS (required for PWA service worker + install prompt)
 - Update `manifest.json` start URL / any hardcoded paths if needed
+- Will also serve: privacy policy + support URLs (required by App Store / Play Store), Supabase auth email links, and native deep links / universal links
 
 ### Modernize — polish leftovers
 - Smoother screen transitions and button press feedback
