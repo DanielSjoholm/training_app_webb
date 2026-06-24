@@ -34,12 +34,17 @@
     box-sizing: border-box;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--background-dark);
     color: var(--text-primary);
     line-height: 1.6;
     overflow-x: hidden;
+    color-scheme: dark;
 }
 
 /* App container */
@@ -278,23 +283,191 @@ body {
     min-height: 20px;
 }
 
-/* Logout button */
-.logout-btn {
-    background: transparent;
+/* Account avatar + dropdown */
+.avatar-menu {
+    position: relative;
+}
+
+.avatar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface-elevated);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
-    padding: 8px 14px;
-    border-radius: 10px;
-    font-size: 0.82rem;
+    cursor: pointer;
+    transition: var(--transition);
+    overflow: hidden;
+    padding: 0;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.avatar-btn:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-light);
+    color: var(--text-primary);
+}
+
+.dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 160px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: var(--shadow);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dropdown-item {
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.9rem;
     font-weight: 500;
+    padding: 10px 12px;
+    border-radius: 8px;
     cursor: pointer;
     transition: var(--transition);
 }
 
-.logout-btn:hover {
+.dropdown-item:hover {
     background: var(--surface-hover);
+}
+
+/* Profile screen */
+.profile-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 28px;
+}
+
+.profile-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    padding: 0;
+    transition: var(--transition);
+}
+
+.profile-avatar:hover {
     border-color: var(--border-light);
+}
+
+.avatar-edit-badge {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
     color: var(--text-primary);
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 0;
+    text-align: center;
+}
+
+.profile-hero-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.profile-hero-email {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 32px;
+}
+
+.profile-form .section-label {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.profile-form input,
+.profile-form select,
+.weight-log-input input {
+    width: 100%;
+    padding: 13px 16px;
+    background: var(--background-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    outline: none;
+    transition: var(--transition);
+}
+
+.profile-form input:focus,
+.profile-form select:focus,
+.weight-log-input input:focus {
+    border-color: var(--border-light);
+}
+
+.weight-log-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.weight-log-input input {
+    flex: 1;
+}
+
+.weight-log-input .btn {
+    min-width: auto;
+    padding: 13px 24px;
+}
+
+/* Weight chart — always show values */
+#weight-chart {
+    margin-bottom: 24px;
+}
+
+#weight-chart .bar-value {
+    opacity: 1;
 }
 
 /* Workout timer styles */
@@ -1417,4 +1590,29 @@ body {
 
 .btn-danger:hover {
     background: #f43f5e;
+}
+
+/* Crop modal */
+.crop-modal {
+    max-width: 420px;
+}
+
+.crop-area {
+    width: 100%;
+    height: 320px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--background-dark);
+}
+
+.crop-area img {
+    display: block;
+    max-width: 100%;
+}
+
+/* Round the crop selection to preview the avatar shape */
+.crop-area .cropper-view-box,
+.crop-area .cropper-face {
+    border-radius: 50%;
 }

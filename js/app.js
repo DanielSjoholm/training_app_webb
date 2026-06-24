@@ -3,9 +3,10 @@ import {
     loadWorkouts, saveWorkouts,
     loadWorkoutState, saveWorkoutState, clearWorkoutState,
     getFormData, setFormData, clearFormData,
-    fetchWorkoutsFromCloud, saveWorkoutToCloud, deleteWorkoutFromCloud
+    fetchWorkoutsFromCloud, saveWorkoutToCloud, deleteWorkoutFromCloud,
+    fetchProfile, saveProfile, fetchWeightLogs, addWeightLog, uploadAvatar
 } from './storage.js';
-import { signIn, signUp, signOut, getSession, onAuthStateChange } from './auth.js';
+import { signIn, signUp, signOut, getSession, onAuthStateChange, getUser } from './auth.js';
 
 export class TrainingApp {
     constructor() {
@@ -21,6 +22,8 @@ export class TrainingApp {
         this.restDuration = 0;
         this.restInterval = 90;
         this.authMode = 'login';
+        this.profile = null;
+        this.user = null;
 
         this.init();
     }
@@ -54,6 +57,17 @@ export class TrainingApp {
 
     async loadUserData() {
         try {
+            this.user = await getUser();
+        } catch {
+            this.user = null;
+        }
+        try {
+            this.profile = await fetchProfile();
+        } catch {
+            this.profile = null;
+        }
+        this.renderAvatars();
+        try {
             this.workouts = await fetchWorkoutsFromCloud();
             saveWorkouts(this.workouts);
             this.populateExerciseSelect();
@@ -69,15 +83,23 @@ export class TrainingApp {
         this.authMode = mode;
         document.getElementById('login-tab').classList.toggle('active', mode === 'login');
         document.getElementById('signup-tab').classList.toggle('active', mode === 'signup');
-        document.getElementById('auth-submit').textContent = mode === 'login' ? 'Logga in' : 'Skapa konto';
+        document.getElementById('auth-submit').textContent = mode === 'login' ? 'Log in' : 'Sign up';
+        document.getElementById('name-field').hidden = mode !== 'signup';
         document.getElementById('auth-error').textContent = '';
     }
 
     async handleAuthSubmit() {
         const email = document.getElementById('auth-email').value;
         const password = document.getElementById('auth-password').value;
+        const displayName = document.getElementById('auth-name').value.trim();
         const errorEl = document.getElementById('auth-error');
         const submitBtn = document.getElementById('auth-submit');
+
+        if (this.authMode === 'signup' && !displayName) {
+            errorEl.style.color = '';
+            errorEl.textContent = 'Please enter a display name.';
+            return;
+        }
 
         submitBtn.disabled = true;
         errorEl.textContent = '';
@@ -86,8 +108,8 @@ export class TrainingApp {
             if (this.authMode === 'login') {
                 await signIn(email, password);
             } else {
-                await signUp(email, password);
-                errorEl.textContent = 'Konto skapat! Kolla din e-post för att bekräfta.';
+                await signUp(email, password, displayName);
+                errorEl.textContent = 'Account created. Check your email to confirm if required.';
                 errorEl.style.color = 'var(--success-color)';
             }
         } catch (e) {
@@ -112,8 +134,235 @@ export class TrainingApp {
         try {
             await signOut();
         } catch (e) {
-            this.showToast('Kunde inte logga ut', 'error');
+            this.showToast('Could not log out', 'error');
         }
+    }
+
+    // --- Account menu ---
+
+    toggleAccountMenu() {
+        const dropdown = document.getElementById('account-dropdown');
+        const isOpen = !dropdown.hidden;
+        dropdown.hidden = isOpen;
+        document.getElementById('avatar-btn').setAttribute('aria-expanded', String(!isOpen));
+    }
+
+    closeAccountMenu() {
+        const dropdown = document.getElementById('account-dropdown');
+        if (!dropdown.hidden) {
+            dropdown.hidden = true;
+            document.getElementById('avatar-btn').setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    // --- Profile ---
+
+    displayName() {
+        return this.profile?.name || this.user?.user_metadata?.display_name || 'Athlete';
+    }
+
+    async openProfile() {
+        this.showScreen('profile-screen');
+        try {
+            this.profile = await fetchProfile();
+        } catch {
+            this.showToast('Could not load profile', 'error');
+        }
+        this.renderProfile();
+        this.renderAvatars();
+        this.loadWeightChart();
+    }
+
+    renderAvatars() {
+        const url = this.profile?.avatar_url;
+        const show = (el) => el.removeAttribute('hidden');
+        const hide = (el) => el.setAttribute('hidden', '');
+        const pairs = [
+            ['header-avatar-img', 'header-avatar-default'],
+            ['profile-avatar-img', 'profile-avatar-default']
+        ];
+        pairs.forEach(([imgId, defId]) => {
+            const img = document.getElementById(imgId);
+            const def = document.getElementById(defId);
+            if (!img || !def) return;
+            if (url) {
+                img.src = url + '?t=' + (this.profile.updated_at ? Date.parse(this.profile.updated_at) : Date.now());
+                show(img);
+                hide(def);
+            } else {
+                hide(img);
+                show(def);
+            }
+        });
+    }
+
+    async handleAvatarUpload(e) {
+        const file = e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            this.showToast('Please choose an image file', 'error');
+            return;
+        }
+
+        const blob = await this.openCropper(file);
+        if (!blob) return;
+
+        this.showToast('Uploading…', 'info');
+        try {
+            const url = await uploadAvatar(blob);
+            await saveProfile({ ...this.profile, avatar_url: url });
+            this.profile = { ...this.profile, avatar_url: url, updated_at: new Date().toISOString() };
+            this.renderAvatars();
+            this.showToast('Photo updated', 'success');
+        } catch {
+            this.showToast('Could not upload photo', 'error');
+        }
+    }
+
+    async openCropper(file) {
+        const { default: Cropper } = await import('https://esm.sh/cropperjs@1.6.2');
+        return new Promise((resolve) => {
+            const url = URL.createObjectURL(file);
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay visible';
+            overlay.innerHTML = `
+                <div class="modal crop-modal">
+                    <h3 class="modal-title">Crop photo</h3>
+                    <div class="crop-area">
+                        <img id="crop-image" src="${url}" alt="">
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn modal-cancel">Cancel</button>
+                        <button class="btn btn-primary crop-save">Save</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const image = overlay.querySelector('#crop-image');
+            const cropper = new Cropper(image, {
+                aspectRatio: 1,
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 1,
+                background: false,
+                guides: false
+            });
+
+            const cleanup = (result) => {
+                cropper.destroy();
+                overlay.remove();
+                URL.revokeObjectURL(url);
+                resolve(result);
+            };
+
+            overlay.querySelector('.modal-cancel').addEventListener('click', () => cleanup(null));
+            overlay.querySelector('.crop-save').addEventListener('click', () => {
+                cropper.getCroppedCanvas({ width: 512, height: 512 })
+                    .toBlob((blob) => cleanup(blob), 'image/jpeg', 0.9);
+            });
+        });
+    }
+
+    renderProfile() {
+        const p = this.profile || {};
+        document.getElementById('profile-hero-name').textContent = this.displayName();
+        document.getElementById('profile-hero-email').textContent = this.user?.email || '';
+        document.getElementById('profile-name').value = p.name || this.user?.user_metadata?.display_name || '';
+        document.getElementById('profile-birthdate').value = p.birthdate || '';
+        document.getElementById('profile-gender').value = p.gender || '';
+        document.getElementById('profile-height').value = p.height ?? '';
+        document.getElementById('profile-weight').value = p.current_weight ?? '';
+        document.getElementById('profile-goal-weight').value = p.goal_weight ?? '';
+        document.getElementById('profile-weekly-goal').value = p.weekly_goal ?? '';
+    }
+
+    async saveProfileForm() {
+        const num = (id) => {
+            const v = document.getElementById(id).value;
+            return v === '' ? null : parseFloat(v);
+        };
+        const profile = {
+            name: document.getElementById('profile-name').value.trim() || null,
+            birthdate: document.getElementById('profile-birthdate').value || null,
+            gender: document.getElementById('profile-gender').value || null,
+            height: num('profile-height'),
+            current_weight: num('profile-weight'),
+            goal_weight: num('profile-goal-weight'),
+            weekly_goal: num('profile-weekly-goal')
+        };
+
+        try {
+            await saveProfile(profile);
+            this.profile = { ...this.profile, ...profile };
+            document.getElementById('profile-hero-name').textContent = this.displayName();
+            this.showToast('Profile saved', 'success');
+        } catch {
+            this.showToast('Could not save profile', 'error');
+        }
+    }
+
+    async logWeight() {
+        const input = document.getElementById('weight-log-value');
+        const weight = parseFloat(input.value);
+        if (!weight || weight <= 0) {
+            this.showToast('Enter a valid weight', 'error');
+            return;
+        }
+
+        try {
+            await addWeightLog(weight);
+            await saveProfile({ ...this.profile, current_weight: weight });
+            this.profile = { ...this.profile, current_weight: weight };
+            document.getElementById('profile-weight').value = weight;
+            input.value = '';
+            this.showToast('Weight logged', 'success');
+            this.loadWeightChart();
+        } catch {
+            this.showToast('Could not log weight', 'error');
+        }
+    }
+
+    async loadWeightChart() {
+        const container = document.getElementById('weight-chart');
+        let logs = [];
+        try {
+            logs = await fetchWeightLogs();
+        } catch {
+            container.innerHTML = '<p class="no-last-workout">Could not load weight history.</p>';
+            return;
+        }
+
+        if (logs.length === 0) {
+            container.innerHTML = '<p class="no-last-workout">No weight logged yet.</p>';
+            return;
+        }
+
+        const weights = logs.map(l => parseFloat(l.weight));
+        const max = Math.max(...weights);
+        const min = Math.min(...weights);
+        const range = max - min || 1;
+
+        container.innerHTML = `
+            <div class="chart-container">
+                <div class="chart-bars">
+                    ${logs.map(log => {
+                        const w = parseFloat(log.weight);
+                        const height = 20 + ((w - min) / range) * 80;
+                        const dateStr = new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        return `
+                            <div class="chart-bar-container">
+                                <div class="chart-bar" style="height: ${height}%">
+                                    <div class="bar-value">${w}kg</div>
+                                </div>
+                                <div class="bar-date">${dateStr}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
     }
 
     // --- Core ---
@@ -192,7 +441,33 @@ export class TrainingApp {
         document.getElementById('back-from-history').addEventListener('click', () => this.showScreen('main-menu'));
         document.getElementById('back-from-progress').addEventListener('click', () => this.showScreen('main-menu'));
         document.getElementById('save-workout').addEventListener('click', () => this.saveWorkout());
-        document.getElementById('logout-btn').addEventListener('click', () => this.handleLogout());
+
+        // Account dropdown menu
+        document.getElementById('avatar-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleAccountMenu();
+        });
+        document.getElementById('menu-profile').addEventListener('click', () => {
+            this.closeAccountMenu();
+            this.openProfile();
+        });
+        document.getElementById('menu-logout').addEventListener('click', () => {
+            this.closeAccountMenu();
+            this.handleLogout();
+        });
+        document.addEventListener('click', () => this.closeAccountMenu());
+
+        // Profile
+        document.getElementById('back-from-profile-page').addEventListener('click', () => this.showScreen('main-menu'));
+        document.getElementById('profile-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveProfileForm();
+        });
+        document.getElementById('add-weight-log').addEventListener('click', () => this.logWeight());
+        document.getElementById('avatar-upload-btn').addEventListener('click', () => {
+            document.getElementById('avatar-file').click();
+        });
+        document.getElementById('avatar-file').addEventListener('change', (e) => this.handleAvatarUpload(e));
 
         document.getElementById('rest-interval-select').addEventListener('change', (e) => {
             this.restInterval = parseInt(e.target.value);
