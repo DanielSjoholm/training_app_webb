@@ -116,6 +116,17 @@ The current UI is functional but basic. Planned improvements:
 - Enhanced progress charts (e.g. line charts, volume tracking)
 - Consider a component-based structure if complexity grows
 
+### Social — vänner och delning
+
+Möjlighet att lägga till vänner och se deras träningspass.
+
+Approach:
+- Lägg till en `friendships`-tabell i Supabase med `user_id` och `friend_id` (och status: pending/accepted)
+- RLS-policy som tillåter användare att läsa vänners workouts om vänskapen är accepterad
+- UI: sök på e-post för att hitta användare, skicka vänskapsförfrågan, acceptera/neka
+- Ny vy i appen — "Friends" — som listar vänners senaste träningspass (read-only)
+- Notis (toast) när en vän sparar ett träningspass (kräver realtime-subscription via Supabase Realtime)
+
 ### Custom domain
 
 Register and configure a custom domain for the app so it can be accessed via a proper URL instead of a GitHub Pages subdomain. Steps when ready:
