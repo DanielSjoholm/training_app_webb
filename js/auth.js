@@ -6,10 +6,19 @@ export async function signIn(email, password) {
     return data;
 }
 
-export async function signUp(email, password) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+export async function signUp(email, password, displayName) {
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { display_name: displayName } }
+    });
     if (error) throw error;
     return data;
+}
+
+export async function getUser() {
+    const { data } = await supabase.auth.getUser();
+    return data.user;
 }
 
 export async function signOut() {

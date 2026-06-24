@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Training Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0b">
@@ -26,6 +27,10 @@
                         <button class="auth-tab" id="signup-tab">Sign up</button>
                     </div>
                     <form id="auth-form">
+                        <div class="field" id="name-field" hidden>
+                            <label for="auth-name">Display name</label>
+                            <input type="text" id="auth-name" placeholder="Your name" autocomplete="name">
+                        </div>
                         <div class="field">
                             <label for="auth-email">Email</label>
                             <input type="email" id="auth-email" placeholder="you@example.com" required autocomplete="email">
@@ -49,7 +54,19 @@
                         <span class="brand-mark brand-mark-sm">TT</span>
                         <span class="brand-name">Training Tracker</span>
                     </div>
-                    <button class="logout-btn" id="logout-btn">Log out</button>
+                    <div class="avatar-menu">
+                        <button class="avatar-btn" id="avatar-btn" aria-label="Account menu" aria-expanded="false">
+                            <img class="avatar-img" id="header-avatar-img" alt="" hidden>
+                            <svg class="avatar-default" id="header-avatar-default" viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+                                <circle cx="12" cy="8" r="4" fill="currentColor"/>
+                                <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" fill="currentColor"/>
+                            </svg>
+                        </button>
+                        <div class="dropdown" id="account-dropdown" hidden>
+                            <button class="dropdown-item" id="menu-profile">Profile</button>
+                            <button class="dropdown-item" id="menu-logout">Log out</button>
+                        </div>
+                    </div>
                 </div>
                 <p class="motivational-quote" id="quote"></p>
             </div>
@@ -180,6 +197,86 @@
             </div>
 
             <div id="progress-chart"></div>
+        </div>
+
+        <!-- Profile Screen -->
+        <div id="profile-screen" class="screen">
+            <div class="header">
+                <button class="back-btn" id="back-from-profile-page">←</button>
+                <h2>Profile</h2>
+            </div>
+
+            <div class="profile-hero">
+                <button type="button" class="profile-avatar" id="avatar-upload-btn" title="Change photo">
+                    <img class="avatar-img" id="profile-avatar-img" alt="" hidden>
+                    <svg class="avatar-default" id="profile-avatar-default" viewBox="0 0 24 24" width="36" height="36" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4" fill="currentColor"/>
+                        <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" fill="currentColor"/>
+                    </svg>
+                    <span class="avatar-edit-badge">Edit</span>
+                </button>
+                <input type="file" id="avatar-file" accept="image/*" hidden>
+                <div class="profile-hero-name" id="profile-hero-name">—</div>
+                <div class="profile-hero-email" id="profile-hero-email"></div>
+            </div>
+
+            <form id="profile-form" class="profile-form">
+                <div class="section-label">Basics</div>
+                <div class="field">
+                    <label for="profile-name">Display name</label>
+                    <input type="text" id="profile-name" placeholder="Your name" autocomplete="name">
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="profile-birthdate">Date of birth</label>
+                        <input type="date" id="profile-birthdate">
+                    </div>
+                    <div class="field">
+                        <label for="profile-gender">Gender</label>
+                        <select id="profile-gender">
+                            <option value="">—</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section-label">Body</div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="profile-height">Height (cm)</label>
+                        <input type="number" id="profile-height" placeholder="0" min="0" step="0.5">
+                    </div>
+                    <div class="field">
+                        <label for="profile-weight">Current weight (kg)</label>
+                        <input type="number" id="profile-weight" placeholder="0" min="0" step="0.1">
+                    </div>
+                </div>
+
+                <div class="section-label">Goals</div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="profile-goal-weight">Goal weight (kg)</label>
+                        <input type="number" id="profile-goal-weight" placeholder="0" min="0" step="0.1">
+                    </div>
+                    <div class="field">
+                        <label for="profile-weekly-goal">Sessions / week</label>
+                        <input type="number" id="profile-weekly-goal" placeholder="0" min="0" max="14" step="1">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-full" id="save-profile">Save Profile</button>
+                </div>
+            </form>
+
+            <div class="section-label">Weight over time</div>
+            <div class="weight-log-input">
+                <input type="number" id="weight-log-value" placeholder="Log weight (kg)" min="0" step="0.1">
+                <button class="btn btn-secondary" id="add-weight-log">Add</button>
+            </div>
+            <div id="weight-chart"></div>
         </div>
 
     </div>

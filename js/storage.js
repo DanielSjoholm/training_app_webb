@@ -86,3 +86,56 @@ export async function deleteWorkoutFromCloud(id) {
         .eq('id', id);
     if (error) throw error;
 }
+
+// --- Profile ---
+
+export async function fetchProfile() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
+export async function saveProfile(profile) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, ...profile, updated_at: new Date().toISOString() });
+    if (error) throw error;
+}
+
+// --- Weight logs ---
+
+export async function fetchWeightLogs() {
+    const { data, error } = await supabase
+        .from('weight_logs')
+        .select('*')
+        .order('date', { ascending: true });
+    if (error) throw error;
+    return data;
+}
+
+export async function addWeightLog(weight) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+        .from('weight_logs')
+        .insert({ user_id: user.id, weight });
+    if (error) throw error;
+}
+
+// --- Avatar ---
+
+export async function uploadAvatar(blob) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const path = `${user.id}/avatar.jpg`;
+    const { error } = await supabase.storage
+        .from('avatars')
+        .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+    if (error) throw error;
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+    return data.publicUrl;
+}
