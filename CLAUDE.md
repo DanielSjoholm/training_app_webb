@@ -107,6 +107,23 @@ Approach:
 - Keep localStorage as an offline fallback (write to both, read from Supabase when online)
 - The data model maps cleanly to a `workouts` table matching the existing JSON structure
 
+### Modernize the app
+
+The current UI is functional but basic. Planned improvements:
+- Smoother animations and transitions between screens
+- Better visual feedback on interactions (haptic-style button press effects)
+- Improved typography and spacing
+- Enhanced progress charts (e.g. line charts, volume tracking)
+- Consider a component-based structure if complexity grows
+
+### Custom domain
+
+Register and configure a custom domain for the app so it can be accessed via a proper URL instead of a GitHub Pages subdomain. Steps when ready:
+- Purchase a domain (e.g. via Namecheap or Cloudflare)
+- Point DNS to the hosting provider
+- Enable HTTPS (required for PWA features like service worker and install prompt)
+- Update `manifest.json` start URL and any hardcoded paths if needed
+
 ---
 
 ### Service Worker
