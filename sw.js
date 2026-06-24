@@ -1,5 +1,5 @@
 // Service Worker for Training Tracker App
-const CACHE_NAME = 'training-tracker-v2';
+const CACHE_NAME = 'training-tracker-v3';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -8,7 +8,10 @@ const urlsToCache = [
     '/js/main.js',
     '/js/app.js',
     '/js/programs.js',
-    '/js/storage.js'
+    '/js/storage.js',
+    '/js/config.js',
+    '/js/supabase.js',
+    '/js/auth.js'
 ];
 
 // Install event - cache resources
