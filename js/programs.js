@@ -9,15 +9,17 @@ export const motivationalQuotes = [
     "Your body can stand almost anything. It's your mind you have to convince."
 ];
 
+// Default ("std") exercises per program. Names match the catalog in `exercises.js`.
+// Users can customise these in the workout screen; their choices are saved per program.
 export const programs = {
     'chest-triceps': {
         name: 'Chest & Triceps',
         exercises: [
             'Bench Press',
-            'Incline Press',
-            'PeckDeck',
+            'Incline Bench Press',
+            'Pec Deck',
             'Triceps Pushdown',
-            'Overhead Triceps Ext'
+            'Overhead Triceps Extension'
         ]
     },
     'shoulder-biceps': {
@@ -26,8 +28,7 @@ export const programs = {
             'Shoulder Press',
             'Lateral Raise',
             'Reverse Flies',
-            'Curl Cable Front',
-            'Curl Cable Back',
+            'Dumbbell Curl',
             'Hammer Curl'
         ]
     },
@@ -42,18 +43,20 @@ export const programs = {
     'back': {
         name: 'PullPass',
         exercises: [
-            'Chins',
-            'Wide Machine Row',
-            'Lat Pull Down',
-            'Single Arm Lat Pulldown'
+            'Pull-ups / Chins',
+            'Lat Pulldown',
+            'Seated Cable Row',
+            'Barbell Row'
         ]
     },
     'legs': {
         name: 'Legs',
         exercises: [
             'Squats',
-            'Deadlifts',
-            'Hipthrusters'
+            'Leg Press',
+            'Lying Leg Curl',
+            'Leg Extension',
+            'Hip Thrusters'
         ]
     },
     'glutes': {
@@ -67,26 +70,25 @@ export const programs = {
     'abs': {
         name: 'Abs',
         exercises: [
-            'Rope Curls',
-            'Toes To Bar'
+            'Rope Crunch',
+            'Hanging Leg Raise'
         ]
     },
     'arms': {
         name: 'Arms',
         exercises: [
-            'Curl Cable Front',
-            'Curl Cable Back',
-            'Hammer Curls',
+            'Dumbbell Curl',
+            'Hammer Curl',
             'Triceps Pushdown',
-            'OverHead Tricpes Ext'
+            'Overhead Triceps Extension'
         ]
     },
     'chest': {
         name: 'Chest',
         exercises: [
-            'Machine Press',
+            'Machine Chest Press',
             'Machine Incline Press',
-            'Peck Deck'
+            'Pec Deck'
         ]
     }
 };

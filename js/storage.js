@@ -108,6 +108,14 @@ export async function saveProfile(profile) {
     if (error) throw error;
 }
 
+export async function saveProgramExercises(map) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, program_exercises: map });
+    if (error) throw error;
+}
+
 // --- Weight logs ---
 
 export async function fetchWeightLogs() {
