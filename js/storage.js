@@ -1,8 +1,12 @@
+import { supabase } from './supabase.js';
+
 const KEYS = {
     workouts: 'training-workouts',
     formData: 'training-form-data',
     workoutState: 'training-workout-state'
 };
+
+// --- LocalStorage (offline cache) ---
 
 export function loadWorkouts() {
     const stored = localStorage.getItem(KEYS.workouts);
@@ -37,4 +41,48 @@ export function setFormData(data) {
 
 export function clearFormData() {
     localStorage.removeItem(KEYS.formData);
+}
+
+// --- Supabase (cloud) ---
+
+export async function fetchWorkoutsFromCloud() {
+    const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .order('date', { ascending: false });
+    if (error) throw error;
+    return data.map(row => ({
+        id: row.id,
+        program: row.program,
+        programName: row.program_name,
+        date: row.date,
+        duration: row.duration,
+        exercises: row.exercises
+    }));
+}
+
+export async function saveWorkoutToCloud(workout) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+        .from('workouts')
+        .insert({
+            user_id: user.id,
+            program: workout.program,
+            program_name: workout.programName,
+            date: workout.date,
+            duration: workout.duration,
+            exercises: workout.exercises
+        })
+        .select()
+        .single();
+    if (error) throw error;
+    return data.id;
+}
+
+export async function deleteWorkoutFromCloud(id) {
+    const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', id);
+    if (error) throw error;
 }

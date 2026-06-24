@@ -2,13 +2,15 @@ import { programs, motivationalQuotes } from './programs.js';
 import {
     loadWorkouts, saveWorkouts,
     loadWorkoutState, saveWorkoutState, clearWorkoutState,
-    getFormData, setFormData, clearFormData
+    getFormData, setFormData, clearFormData,
+    fetchWorkoutsFromCloud, saveWorkoutToCloud, deleteWorkoutFromCloud
 } from './storage.js';
+import { signIn, signUp, signOut, getSession, onAuthStateChange } from './auth.js';
 
 export class TrainingApp {
     constructor() {
         this.currentProgram = null;
-        this.workouts = loadWorkouts();
+        this.workouts = [];
         this.workoutTimer = null;
         this.workoutStartTime = null;
         this.workoutDuration = 0;
@@ -18,9 +20,97 @@ export class TrainingApp {
         this.restStartTime = null;
         this.restDuration = 0;
         this.restInterval = 90;
+        this.authMode = 'login';
 
         this.init();
     }
+
+    async init() {
+        this.setupEventListeners();
+        this.setupPageProtection();
+        this.showRandomQuote();
+
+        const session = await getSession();
+        if (session) {
+            await this.loadUserData();
+            this.showScreen('main-menu');
+            this.checkForActiveWorkout();
+        } else {
+            this.showScreen('auth-screen');
+        }
+
+        onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN') {
+                await this.loadUserData();
+                clearWorkoutState();
+                this.showScreen('main-menu');
+            } else if (event === 'SIGNED_OUT') {
+                this.workouts = [];
+                saveWorkouts([]);
+                this.showScreen('auth-screen');
+            }
+        });
+    }
+
+    async loadUserData() {
+        try {
+            this.workouts = await fetchWorkoutsFromCloud();
+            saveWorkouts(this.workouts);
+            this.populateExerciseSelect();
+        } catch {
+            this.workouts = loadWorkouts();
+            this.showToast('Offline — visar cachad data', 'info');
+        }
+    }
+
+    // --- Auth ---
+
+    setAuthMode(mode) {
+        this.authMode = mode;
+        document.getElementById('login-tab').classList.toggle('active', mode === 'login');
+        document.getElementById('signup-tab').classList.toggle('active', mode === 'signup');
+        document.getElementById('auth-submit').textContent = mode === 'login' ? 'Logga in' : 'Skapa konto';
+        document.getElementById('auth-error').textContent = '';
+    }
+
+    async handleAuthSubmit() {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const errorEl = document.getElementById('auth-error');
+        const submitBtn = document.getElementById('auth-submit');
+
+        submitBtn.disabled = true;
+        errorEl.textContent = '';
+
+        try {
+            if (this.authMode === 'login') {
+                await signIn(email, password);
+            } else {
+                await signUp(email, password);
+                errorEl.textContent = 'Konto skapat! Kolla din e-post för att bekräfta.';
+                errorEl.style.color = 'var(--success-color)';
+            }
+        } catch (e) {
+            errorEl.style.color = '';
+            errorEl.textContent = e.message;
+        } finally {
+            submitBtn.disabled = false;
+        }
+    }
+
+    async handleLogout() {
+        if (this.isWorkoutActive) {
+            const confirm = window.confirm('Du har en aktiv träning. Vill du verkligen logga ut?');
+            if (!confirm) return;
+        }
+        try {
+            await signOut();
+        } catch (e) {
+            this.showToast('Kunde inte logga ut', 'error');
+        }
+    }
+
+    // --- Core ---
 
     formatDuration(milliseconds) {
         const totalSeconds = Math.floor(milliseconds / 1000);
@@ -40,7 +130,6 @@ export class TrainingApp {
         const programWorkouts = this.workouts
             .filter(workout => workout.program === programId)
             .sort((a, b) => new Date(b.date) - new Date(a.date));
-
         return programWorkouts.length > 0 ? programWorkouts[0] : null;
     }
 
@@ -54,9 +143,7 @@ export class TrainingApp {
         }
 
         const date = new Date(lastWorkout.date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
+            year: 'numeric', month: 'short', day: 'numeric'
         });
 
         container.innerHTML = `
@@ -69,22 +156,12 @@ export class TrainingApp {
                     <div class="last-exercise-item">
                         <span class="last-exercise-name">${ex.name}</span>
                         <div class="last-exercise-sets">
-                            ${ex.sets.map(set => `
-                                <span class="last-set-display">${set.weight}kg × ${set.reps}</span>
-                            `).join(' • ')}
+                            ${ex.sets.map(set => `<span class="last-set-display">${set.weight}kg × ${set.reps}</span>`).join(' • ')}
                         </div>
                     </div>
                 `).join('')}
             </div>
         `;
-    }
-
-    init() {
-        this.setupEventListeners();
-        this.setupPageProtection();
-        this.showRandomQuote();
-        this.populateExerciseSelect();
-        this.checkForActiveWorkout();
     }
 
     setupPageProtection() {
@@ -95,32 +172,21 @@ export class TrainingApp {
                 return e.returnValue;
             }
         });
-
         window.history.pushState(null, null, window.location.href);
-    }
-
-    forceStopWorkout() {
-        this.stopWorkoutTimer();
-        this.isWorkoutActive = false;
-        this.currentProgram = null;
     }
 
     setupEventListeners() {
         document.querySelectorAll('.program-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const program = e.currentTarget.dataset.program;
-                this.openWorkout(program);
-            });
+            btn.addEventListener('click', (e) => this.openWorkout(e.currentTarget.dataset.program));
         });
 
         document.getElementById('history-btn').addEventListener('click', () => this.showScreen('history-screen'));
         document.getElementById('progress-btn').addEventListener('click', () => this.showScreen('progress-screen'));
-
         document.getElementById('back-to-menu').addEventListener('click', () => this.showScreen('main-menu'));
         document.getElementById('back-from-history').addEventListener('click', () => this.showScreen('main-menu'));
         document.getElementById('back-from-progress').addEventListener('click', () => this.showScreen('main-menu'));
-
         document.getElementById('save-workout').addEventListener('click', () => this.saveWorkout());
+        document.getElementById('logout-btn').addEventListener('click', () => this.handleLogout());
 
         document.getElementById('rest-interval-select').addEventListener('change', (e) => {
             this.restInterval = parseInt(e.target.value);
@@ -132,13 +198,17 @@ export class TrainingApp {
 
         document.getElementById('program-filter').addEventListener('change', () => this.filterHistory());
         document.getElementById('exercise-select').addEventListener('change', () => this.updateProgressChart());
+
+        document.getElementById('auth-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleAuthSubmit();
+        });
+        document.getElementById('login-tab').addEventListener('click', () => this.setAuthMode('login'));
+        document.getElementById('signup-tab').addEventListener('click', () => this.setAuthMode('signup'));
     }
 
     showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(screen => {
-            screen.classList.remove('active');
-        });
-
+        document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
 
         if (screenId === 'main-menu' && this.workoutTimer) {
@@ -149,23 +219,22 @@ export class TrainingApp {
                     return;
                 }
             }
-
             this.stopWorkoutTimer();
             this.isWorkoutActive = false;
         }
 
-        if (screenId === 'history-screen') {
-            this.loadHistory();
-        } else if (screenId === 'progress-screen') {
-            this.loadProgress();
-        }
+        if (screenId === 'history-screen') this.loadHistory();
+        else if (screenId === 'progress-screen') this.loadProgress();
     }
 
     showRandomQuote() {
         const quoteElement = document.getElementById('quote');
-        const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
-        quoteElement.textContent = randomQuote;
+        if (quoteElement) {
+            quoteElement.textContent = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+        }
     }
+
+    // --- Workout form ---
 
     renderWorkoutForm(exercises) {
         const container = document.getElementById('exercises-container');
@@ -183,8 +252,7 @@ export class TrainingApp {
                         <div class="set-reps">Reps</div>
                         <div class="set-actions"></div>
                     </div>
-                    <div class="sets-list" id="sets-list-${exercise.replace(/\s+/g, '-')}">
-                    </div>
+                    <div class="sets-list" id="sets-list-${exercise.replace(/\s+/g, '-')}"></div>
                 </div>
                 <div class="exercise-actions">
                     <button class="btn btn-secondary add-set-btn" onclick="app.addSet('${exercise.replace(/\s+/g, '-')}')">
@@ -193,7 +261,6 @@ export class TrainingApp {
                 </div>
             `;
             container.appendChild(exerciseEntry);
-
             this.addSet(exercise.replace(/\s+/g, '-'));
         });
 
@@ -209,10 +276,12 @@ export class TrainingApp {
         setRow.innerHTML = `
             <div class="set-number">${setNumber}</div>
             <div class="set-weight">
-                <input type="number" class="weight-input" placeholder="0" min="0" step="0.5" data-exercise="${exerciseId}" data-set="${setNumber}" data-field="weight">
+                <input type="number" class="weight-input" placeholder="0" min="0" step="0.5"
+                    data-exercise="${exerciseId}" data-set="${setNumber}" data-field="weight">
             </div>
             <div class="set-reps">
-                <input type="number" class="reps-input" placeholder="0" min="0" data-exercise="${exerciseId}" data-set="${setNumber}" data-field="reps">
+                <input type="number" class="reps-input" placeholder="0" min="0"
+                    data-exercise="${exerciseId}" data-set="${setNumber}" data-field="reps">
             </div>
             <div class="set-actions">
                 <button class="btn-remove-set" onclick="app.removeSet(this, '${exerciseId}')" title="Remove set">✕</button>
@@ -224,26 +293,23 @@ export class TrainingApp {
     }
 
     removeSet(button, exerciseId) {
-        const setRow = button.closest('.set-row');
-        setRow.remove();
+        button.closest('.set-row').remove();
         this.updateSetNumbers(exerciseId);
     }
 
     updateSetNumbers(exerciseId) {
         const setsList = document.getElementById(`sets-list-${exerciseId}`);
-        const setRows = setsList.querySelectorAll('.set-row');
-
-        setRows.forEach((row, index) => {
+        setsList.querySelectorAll('.set-row').forEach((row, index) => {
             const setNumber = index + 1;
             row.querySelector('.set-number').textContent = setNumber;
-
             const weightInput = row.querySelector('.weight-input');
             const repsInput = row.querySelector('.reps-input');
-
             if (weightInput) weightInput.dataset.set = setNumber;
             if (repsInput) repsInput.dataset.set = setNumber;
         });
     }
+
+    // --- History ---
 
     loadHistory() {
         const container = document.getElementById('history-list');
@@ -256,16 +322,12 @@ export class TrainingApp {
 
         const sortedWorkouts = [...this.workouts].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        sortedWorkouts.forEach((workout, index) => {
+        sortedWorkouts.forEach((workout) => {
             const workoutCard = document.createElement('div');
             workoutCard.className = 'workout-card';
 
             const date = new Date(workout.date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
             });
 
             workoutCard.innerHTML = `
@@ -273,9 +335,7 @@ export class TrainingApp {
                     <span class="workout-program">${workout.programName}</span>
                     <div class="workout-actions">
                         <span class="workout-date">${date}</span>
-                        <button class="btn-delete-workout" onclick="app.deleteWorkout(${index})" title="Delete workout">
-                            🗑️
-                        </button>
+                        <button class="btn-delete-workout" onclick="app.deleteWorkout('${workout.id}')" title="Delete workout">🗑️</button>
                     </div>
                 </div>
                 <div class="workout-duration">
@@ -287,8 +347,8 @@ export class TrainingApp {
                         <div class="exercise-item">
                             <span class="exercise-item-name">${ex.name}</span>
                             <div class="exercise-sets">
-                                ${ex.sets.map((set, index) => `
-                                    <span class="set-display">${set.weight}kg × ${set.reps}${index < ex.sets.length - 1 ? ', ' : ''}</span>
+                                ${ex.sets.map((set, i) => `
+                                    <span class="set-display">${set.weight}kg × ${set.reps}${i < ex.sets.length - 1 ? ', ' : ''}</span>
                                 `).join('')}
                             </div>
                         </div>
@@ -300,25 +360,32 @@ export class TrainingApp {
         });
     }
 
-    deleteWorkout(workoutIndex) {
-        if (confirm('Are you sure you want to delete this workout? This action cannot be undone.')) {
-            this.workouts.splice(workoutIndex, 1);
-            saveWorkouts(this.workouts);
-            this.loadHistory();
-            this.showToast('Workout deleted successfully! 🗑️', 'success');
+    async deleteWorkout(workoutId) {
+        if (!confirm('Are you sure you want to delete this workout? This action cannot be undone.')) return;
+
+        try {
+            await deleteWorkoutFromCloud(workoutId);
+        } catch {
+            this.showToast('Kunde inte radera från molnet', 'error');
+            return;
         }
+
+        this.workouts = this.workouts.filter(w => w.id !== workoutId);
+        saveWorkouts(this.workouts);
+        this.loadHistory();
+        this.showToast('Workout deleted successfully! 🗑️', 'success');
     }
 
     filterHistory() {
         const filter = document.getElementById('program-filter').value;
-        const workoutCards = document.querySelectorAll('.workout-card');
-
-        workoutCards.forEach(card => {
+        document.querySelectorAll('.workout-card').forEach(card => {
             const programName = card.querySelector('.workout-program').textContent;
             const shouldShow = !filter || programs[filter]?.name === programName;
             card.style.display = shouldShow ? 'block' : 'none';
         });
     }
+
+    // --- Progress ---
 
     loadProgress() {
         this.populateExerciseSelect();
@@ -328,12 +395,7 @@ export class TrainingApp {
     populateExerciseSelect() {
         const select = document.getElementById('exercise-select');
         const exercises = new Set();
-
-        this.workouts.forEach(workout => {
-            workout.exercises.forEach(exercise => {
-                exercises.add(exercise.name);
-            });
-        });
+        this.workouts.forEach(workout => workout.exercises.forEach(ex => exercises.add(ex.name)));
 
         select.innerHTML = '<option value="">Select Exercise</option>';
         exercises.forEach(exercise => {
@@ -361,10 +423,10 @@ export class TrainingApp {
 
         const exerciseData = this.workouts
             .filter(workout => workout.exercises.some(ex => ex.name === exerciseName))
-            .map(workout => {
-                const exercise = workout.exercises.find(ex => ex.name === exerciseName);
-                return { date: new Date(workout.date), sets: exercise.sets };
-            })
+            .map(workout => ({
+                date: new Date(workout.date),
+                sets: workout.exercises.find(ex => ex.name === exerciseName).sets
+            }))
             .sort((a, b) => a.date - b.date);
 
         if (exerciseData.length === 0) {
@@ -379,20 +441,15 @@ export class TrainingApp {
         }
 
         let bestWeight = 0;
-        let totalVolume = 0;
-        const totalWorkouts = exerciseData.length;
-
         exerciseData.forEach(workout => {
             workout.sets.forEach(set => {
                 const weight = parseFloat(set.weight);
-                const reps = parseFloat(set.reps);
                 if (weight > bestWeight) bestWeight = weight;
-                totalVolume += weight * reps;
             });
         });
 
-        const lastWorkout = exerciseData[exerciseData.length - 1];
         const firstWorkout = exerciseData[0];
+        const lastWorkout = exerciseData[exerciseData.length - 1];
         const improvement = bestWeight - Math.max(...firstWorkout.sets.map(set => parseFloat(set.weight)));
 
         chartContainer.innerHTML = `
@@ -402,7 +459,7 @@ export class TrainingApp {
                     <div class="progress-stats">
                         <div class="stat-item">
                             <span class="stat-label">Workouts</span>
-                            <span class="stat-value">${totalWorkouts}</span>
+                            <span class="stat-value">${exerciseData.length}</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">Best Weight</span>
@@ -427,9 +484,7 @@ export class TrainingApp {
                                         <div class="bar-value">${maxWeight}kg</div>
                                     </div>
                                     <div class="bar-date">${dateStr}</div>
-                                    <div class="bar-details">
-                                        <div class="bar-sets">${setsInfo}</div>
-                                    </div>
+                                    <div class="bar-details"><div class="bar-sets">${setsInfo}</div></div>
                                 </div>
                             `;
                         }).join('')}
@@ -452,22 +507,17 @@ export class TrainingApp {
     }
 
     addProgressChartInteractions() {
-        const barContainers = document.querySelectorAll('.chart-bar-container');
-
-        barContainers.forEach(container => {
+        document.querySelectorAll('.chart-bar-container').forEach(container => {
             container.addEventListener('click', () => {
                 const details = container.querySelector('.bar-details');
                 const isVisible = details.style.display === 'block';
-
                 document.querySelectorAll('.bar-details').forEach(d => d.style.display = 'none');
                 document.querySelectorAll('.chart-bar-container').forEach(c => c.classList.remove('active'));
-
                 if (!isVisible) {
                     details.style.display = 'block';
                     container.classList.add('active');
                 }
             });
-
             container.addEventListener('touchstart', () => container.classList.add('touching'));
             container.addEventListener('touchend', () => container.classList.remove('touching'));
         });
@@ -533,10 +583,7 @@ export class TrainingApp {
         this.restTimer = setInterval(() => {
             this.restDuration = Date.now() - this.restStartTime;
             this.updateRestTimerDisplay();
-
-            if (this.restDuration >= this.restInterval * 1000) {
-                this.completeRest();
-            }
+            if (this.restDuration >= this.restInterval * 1000) this.completeRest();
         }, 100);
 
         this.updateRestTimerDisplay();
@@ -552,37 +599,24 @@ export class TrainingApp {
     updateRestTimerDisplay() {
         const timeElement = document.getElementById('rest-timer-time');
         const progressElement = document.getElementById('rest-timer-progress');
-
         if (!timeElement || !progressElement) return;
 
         const remaining = Math.max(0, this.restInterval - Math.floor(this.restDuration / 1000));
-        const minutes = Math.floor(remaining / 60);
-        const seconds = remaining % 60;
-
-        timeElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        timeElement.textContent = `${Math.floor(remaining / 60)}:${(remaining % 60).toString().padStart(2, '0')}`;
 
         const progress = (this.restDuration / (this.restInterval * 1000)) * 100;
         const degrees = Math.min(progress * 3.6, 360);
-
-        if (progress >= 0.8) {
-            progressElement.style.background = `conic-gradient(var(--success-color) ${degrees}deg, transparent ${degrees}deg)`;
-        } else if (progress >= 0.6) {
-            progressElement.style.background = `conic-gradient(var(--accent-color) ${degrees}deg, transparent ${degrees}deg)`;
-        } else {
-            progressElement.style.background = `conic-gradient(var(--primary-color) ${degrees}deg, transparent ${degrees}deg)`;
-        }
+        const color = progress >= 0.8 ? 'var(--success-color)' : progress >= 0.6 ? 'var(--accent-color)' : 'var(--primary-color)';
+        progressElement.style.background = `conic-gradient(${color} ${degrees}deg, transparent ${degrees}deg)`;
     }
 
     completeRest() {
         this.stopRestTimer();
-
         const container = document.getElementById('rest-timer-container');
         container.classList.remove('active');
         container.classList.add('completed');
-
         this.updateRestTimerButtons('completed');
         this.showToast('Rest complete! Ready for next set 💪', 'success');
-
         setTimeout(() => {
             container.classList.remove('completed');
             this.initializeRestTimer();
@@ -591,25 +625,21 @@ export class TrainingApp {
 
     resetRestTimer() {
         this.stopRestTimer();
-
         const timeElement = document.getElementById('rest-timer-time');
         const progressElement = document.getElementById('rest-timer-progress');
-
         if (timeElement && progressElement) {
             const minutes = Math.floor(this.restInterval / 60);
             const seconds = this.restInterval % 60;
             timeElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
             progressElement.style.background = `conic-gradient(transparent 0deg, transparent 0deg)`;
         }
-
         this.updateRestTimerButtons('ready');
         this.showToast('Rest timer reset', 'info');
     }
 
     skipRest() {
         this.stopRestTimer();
-        const container = document.getElementById('rest-timer-container');
-        container.classList.remove('active', 'completed');
+        document.getElementById('rest-timer-container').classList.remove('active', 'completed');
         this.initializeRestTimer();
     }
 
@@ -623,8 +653,7 @@ export class TrainingApp {
     // --- Form data persistence ---
 
     addFormDataListeners() {
-        const inputs = document.querySelectorAll('.weight-input, .reps-input');
-        inputs.forEach(input => {
+        document.querySelectorAll('.weight-input, .reps-input').forEach(input => {
             input.addEventListener('input', () => this.saveFormData());
         });
     }
@@ -640,10 +669,8 @@ export class TrainingApp {
             const setsContainer = document.getElementById(`sets-${exerciseId}`);
             if (!setsContainer) return;
 
-            const setRows = setsContainer.querySelector('.sets-list').querySelectorAll('.set-row');
             formData.exercises[exerciseId] = [];
-
-            setRows.forEach(setRow => {
+            setsContainer.querySelector('.sets-list').querySelectorAll('.set-row').forEach(setRow => {
                 const weightInput = setRow.querySelector('.weight-input');
                 const repsInput = setRow.querySelector('.reps-input');
                 if (weightInput && repsInput) {
@@ -666,7 +693,6 @@ export class TrainingApp {
             if (!setsList) return;
 
             setsList.innerHTML = '';
-
             formData.exercises[exerciseId].forEach((setData, index) => {
                 const setNumber = index + 1;
                 const setRow = document.createElement('div');
@@ -674,10 +700,12 @@ export class TrainingApp {
                 setRow.innerHTML = `
                     <div class="set-number">${setNumber}</div>
                     <div class="set-weight">
-                        <input type="number" class="weight-input" placeholder="0" min="0" step="0.5" data-exercise="${exerciseId}" data-set="${setNumber}" data-field="weight" value="${setData.weight}">
+                        <input type="number" class="weight-input" placeholder="0" min="0" step="0.5"
+                            data-exercise="${exerciseId}" data-set="${setNumber}" data-field="weight" value="${setData.weight}">
                     </div>
                     <div class="set-reps">
-                        <input type="number" class="reps-input" placeholder="0" min="0" data-exercise="${exerciseId}" data-set="${setNumber}" data-field="reps" value="${setData.reps}">
+                        <input type="number" class="reps-input" placeholder="0" min="0"
+                            data-exercise="${exerciseId}" data-set="${setNumber}" data-field="reps" value="${setData.reps}">
                     </div>
                     <div class="set-actions">
                         <button class="btn-remove-set" onclick="app.removeSet(this, '${exerciseId}')" title="Remove set">✕</button>
@@ -685,9 +713,9 @@ export class TrainingApp {
                 `;
                 setsList.appendChild(setRow);
             });
-
-            this.addFormDataListeners();
         });
+
+        this.addFormDataListeners();
     }
 
     // --- Workout state persistence ---
@@ -695,18 +723,13 @@ export class TrainingApp {
     checkForActiveWorkout() {
         if (this.workoutState && this.workoutState.isActive) {
             const stateAge = Date.now() - this.workoutState.timestamp;
-            const maxAge = 24 * 60 * 60 * 1000;
-
-            if (stateAge < maxAge) {
+            if (stateAge < 24 * 60 * 60 * 1000) {
                 const confirmRestore = confirm(
                     `You have an active workout session from ${new Date(this.workoutState.timestamp).toLocaleTimeString()}. ` +
                     `Would you like to continue where you left off?`
                 );
-                if (confirmRestore) {
-                    this.restoreWorkoutState();
-                } else {
-                    clearWorkoutState();
-                }
+                if (confirmRestore) this.restoreWorkoutState();
+                else clearWorkoutState();
             } else {
                 clearWorkoutState();
             }
@@ -725,9 +748,7 @@ export class TrainingApp {
         document.getElementById('workout-title').textContent = program.name;
         this.renderWorkoutForm(program.exercises);
         this.initializeRestTimer();
-
         setTimeout(() => this.loadFormData(), 100);
-
         this.renderLastWorkout(this.getLastWorkout(this.currentProgram));
         this.showScreen('workout-screen');
         this.startWorkoutTimer();
@@ -747,7 +768,6 @@ export class TrainingApp {
         this.workoutTimer = setInterval(() => {
             this.workoutDuration = Date.now() - this.workoutStartTime;
             this.updateTimerDisplay();
-
             if (this.isWorkoutActive && this.currentProgram) {
                 saveWorkoutState({
                     program: this.currentProgram,
@@ -767,7 +787,6 @@ export class TrainingApp {
             clearInterval(this.workoutTimer);
             this.workoutTimer = null;
         }
-
         if (this.workoutStartTime) {
             this.workoutDuration = Date.now() - this.workoutStartTime;
         }
@@ -800,10 +819,10 @@ export class TrainingApp {
         });
     }
 
-    saveWorkout() {
+    async saveWorkout() {
         if (!this.currentProgram) return;
 
-        const confirmSave = confirm('Är du säker på att du vill spara och avsluta denna träning? Detta kan inte ångras.');
+        const confirmSave = confirm('Är du säker på att du vill spara och avsluta denna träning?');
         if (!confirmSave) return;
 
         this.stopWorkoutTimer();
@@ -823,13 +842,11 @@ export class TrainingApp {
             const exerciseId = exercise.replace(/\s+/g, '-');
             const setsContainer = document.getElementById(`sets-${exerciseId}`);
             const setRows = setsContainer.querySelector('.sets-list').querySelectorAll('.set-row');
-
             const exerciseData = { name: exercise, sets: [] };
 
             setRows.forEach(setRow => {
                 const weightInput = setRow.querySelector('.weight-input');
                 const repsInput = setRow.querySelector('.reps-input');
-
                 if (weightInput && repsInput) {
                     const weight = weightInput.value;
                     const reps = repsInput.value;
@@ -839,17 +856,21 @@ export class TrainingApp {
                 }
             });
 
-            if (exerciseData.sets.length > 0) {
-                workoutData.exercises.push(exerciseData);
-            }
+            if (exerciseData.sets.length > 0) workoutData.exercises.push(exerciseData);
         });
 
-        this.workouts.push(workoutData);
+        try {
+            const id = await saveWorkoutToCloud(workoutData);
+            workoutData.id = id;
+            this.showToast('Workout saved! 💪', 'success');
+        } catch {
+            this.showToast('Sparad lokalt — ingen internetanslutning', 'info');
+        }
+
+        this.workouts.unshift(workoutData);
         saveWorkouts(this.workouts);
         clearWorkoutState();
         clearFormData();
-
-        this.showToast('Workout saved successfully! 💪', 'success');
 
         setTimeout(() => this.showScreen('main-menu'), 1500);
     }
@@ -862,7 +883,6 @@ export class TrainingApp {
         toast.className = `toast ${type}`;
         toast.textContent = message;
         document.body.appendChild(toast);
-
         setTimeout(() => toast.remove(), 3000);
     }
 }

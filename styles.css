@@ -86,6 +86,138 @@ body {
     line-height: 1.5;
 }
 
+/* Auth screen */
+.auth-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    gap: 32px;
+}
+
+.auth-logo {
+    text-align: center;
+}
+
+.auth-logo h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+}
+
+.auth-logo p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface-dark);
+    border-radius: var(--border-radius);
+    padding: 28px;
+    border: 1px solid var(--border-color);
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    background: var(--background-dark);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.auth-tab.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+#auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#auth-form input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--background-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    outline: none;
+    transition: var(--transition);
+}
+
+#auth-form input:focus {
+    border-color: var(--primary-color);
+}
+
+.btn-full {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.auth-error {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--error-color);
+    text-align: center;
+    min-height: 20px;
+}
+
+/* Header top row with logout */
+.header-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.header-top h1 {
+    margin-bottom: 0;
+}
+
+.logout-btn {
+    position: absolute;
+    right: 0;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.logout-btn:hover {
+    border-color: var(--error-color);
+    color: var(--error-color);
+}
+
 /* Workout timer styles */
 .workout-timer-container {
     display: flex;
