@@ -9,6 +9,7 @@ import {
     saveProgramExercises
 } from './storage.js';
 import { signIn, signUp, signOut, getSession, onAuthStateChange, getUser, updatePassword, deleteAccount } from './auth.js';
+import { searchUserByEmail, sendFriendRequest, fetchFriendsWithProfiles, acceptFriendRequest, declineOrRemoveFriend, fetchFriendWorkouts } from './friends.js';
 
 export class TrainingApp {
     constructor() {
@@ -522,6 +523,11 @@ export class TrainingApp {
 
         document.getElementById('history-btn').addEventListener('click', () => this.showScreen('history-screen'));
         document.getElementById('progress-btn').addEventListener('click', () => this.showScreen('progress-screen'));
+        document.getElementById('back-from-friends').addEventListener('click', () => this.showScreen('main-menu'));
+        document.getElementById('friend-search-btn').addEventListener('click', () => this.searchFriend());
+        document.getElementById('friend-search-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.searchFriend();
+        });
         document.getElementById('back-to-menu').addEventListener('click', () => this.exitWorkout());
         document.getElementById('back-from-history').addEventListener('click', () => this.showScreen('main-menu'));
         document.getElementById('back-from-progress').addEventListener('click', () => this.showScreen('main-menu'));
@@ -535,6 +541,10 @@ export class TrainingApp {
         document.getElementById('menu-profile').addEventListener('click', () => {
             this.closeAccountMenu();
             this.openProfile();
+        });
+        document.getElementById('menu-friends').addEventListener('click', () => {
+            this.closeAccountMenu();
+            this.showScreen('friends-screen');
         });
         document.getElementById('menu-settings').addEventListener('click', () => {
             this.closeAccountMenu();
@@ -594,6 +604,7 @@ export class TrainingApp {
 
         if (screenId === 'history-screen') this.loadHistory();
         else if (screenId === 'progress-screen') this.loadProgress();
+        else if (screenId === 'friends-screen') this.loadFriendsScreen();
     }
 
     async exitWorkout() {
@@ -1425,6 +1436,224 @@ export class TrainingApp {
         toast.textContent = message;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
+    }
+
+    // --- Friends ---
+
+    async loadFriendsScreen() {
+        document.getElementById('friend-search-result').innerHTML = '';
+        document.getElementById('friend-search-input').value = '';
+        try {
+            const all = await fetchFriendsWithProfiles();
+            const incoming = all.filter(f => f.status === 'pending' && !f.i_am_requester);
+            const accepted = all.filter(f => f.status === 'accepted');
+            this.renderFriendRequests(incoming);
+            this.renderFriendsList(accepted);
+            this.updateFriendsBadge(incoming.length);
+        } catch {
+            this.showToast('Could not load friends', 'error');
+        }
+    }
+
+    updateFriendsBadge(count) {
+        const badge = document.getElementById('friends-badge');
+        if (count > 0) {
+            badge.textContent = count;
+            badge.removeAttribute('hidden');
+        } else {
+            badge.setAttribute('hidden', '');
+        }
+    }
+
+    renderFriendRequests(requests) {
+        const section = document.getElementById('friend-requests-section');
+        const list = document.getElementById('friend-requests-list');
+        if (requests.length === 0) {
+            section.setAttribute('hidden', '');
+            return;
+        }
+        section.removeAttribute('hidden');
+        list.innerHTML = requests.map(r => `
+            <div class="friend-card" data-id="${r.friendship_id}">
+                <div class="friend-card-info">
+                    ${this.friendAvatarHtml(r.avatar_url)}
+                    <span class="friend-name">${this.escapeHtml(r.display_name || 'Unknown')}</span>
+                </div>
+                <div class="friend-card-actions">
+                    <button class="btn btn-primary btn-sm friend-accept">Accept</button>
+                    <button class="btn btn-secondary btn-sm friend-decline">Decline</button>
+                </div>
+            </div>
+        `).join('');
+
+        list.querySelectorAll('.friend-card').forEach(card => {
+            const id = card.dataset.id;
+            card.querySelector('.friend-accept').addEventListener('click', async () => {
+                try {
+                    await acceptFriendRequest(id);
+                    this.showToast('Friend request accepted', 'success');
+                    this.loadFriendsScreen();
+                } catch {
+                    this.showToast('Could not accept request', 'error');
+                }
+            });
+            card.querySelector('.friend-decline').addEventListener('click', async () => {
+                try {
+                    await declineOrRemoveFriend(id);
+                    this.showToast('Request declined', 'info');
+                    this.loadFriendsScreen();
+                } catch {
+                    this.showToast('Could not decline request', 'error');
+                }
+            });
+        });
+    }
+
+    renderFriendsList(friends) {
+        const list = document.getElementById('friends-list');
+        if (friends.length === 0) {
+            list.innerHTML = '<p class="friends-empty">No friends yet. Search by email to add someone.</p>';
+            return;
+        }
+        list.innerHTML = friends.map(f => `
+            <div class="friend-card friend-card-accepted" data-id="${f.friendship_id}" data-friend-id="${f.friend_id}">
+                <div class="friend-card-info friend-card-toggle">
+                    ${this.friendAvatarHtml(f.avatar_url)}
+                    <span class="friend-name">${this.escapeHtml(f.display_name || 'Unknown')}</span>
+                    <span class="friend-chevron">›</span>
+                </div>
+                <div class="friend-workouts" hidden></div>
+                <div class="friend-card-actions">
+                    <button class="btn btn-secondary btn-sm friend-remove">Remove</button>
+                </div>
+            </div>
+        `).join('');
+
+        list.querySelectorAll('.friend-card-accepted').forEach(card => {
+            const id = card.dataset.id;
+            const friendId = card.dataset.friendId;
+
+            card.querySelector('.friend-card-toggle').addEventListener('click', () => {
+                this.toggleFriendWorkouts(card, friendId);
+            });
+
+            card.querySelector('.friend-remove').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const ok = await this.showConfirm({
+                    title: 'Remove friend?',
+                    message: 'You will no longer see each other\'s workouts.',
+                    confirmText: 'Remove',
+                    cancelText: 'Cancel',
+                    danger: true
+                });
+                if (!ok) return;
+                try {
+                    await declineOrRemoveFriend(id);
+                    this.showToast('Friend removed', 'info');
+                    this.loadFriendsScreen();
+                } catch {
+                    this.showToast('Could not remove friend', 'error');
+                }
+            });
+        });
+    }
+
+    async toggleFriendWorkouts(card, friendId) {
+        const workoutsEl = card.querySelector('.friend-workouts');
+        const chevron = card.querySelector('.friend-chevron');
+        const isOpen = !workoutsEl.hidden;
+
+        if (isOpen) {
+            workoutsEl.setAttribute('hidden', '');
+            chevron.classList.remove('open');
+            return;
+        }
+
+        workoutsEl.removeAttribute('hidden');
+        chevron.classList.add('open');
+
+        if (workoutsEl.dataset.loaded) return;
+        workoutsEl.dataset.loaded = '1';
+        workoutsEl.innerHTML = '<p class="friend-workouts-loading">Loading...</p>';
+
+        try {
+            const workouts = await fetchFriendWorkouts(friendId);
+            if (workouts.length === 0) {
+                workoutsEl.innerHTML = '<p class="friend-workouts-empty">No workouts yet.</p>';
+                return;
+            }
+            workoutsEl.innerHTML = workouts.map(w => {
+                const date = new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                return `
+                    <div class="friend-workout-item">
+                        <div class="friend-workout-header">
+                            <span class="friend-workout-program">${this.escapeHtml(w.programName)}</span>
+                            <span class="friend-workout-date">${date}</span>
+                        </div>
+                        <div class="friend-workout-exercises">
+                            ${w.exercises.map(ex => `
+                                <div class="friend-exercise-row">
+                                    <span class="friend-exercise-name">${this.escapeHtml(ex.name)}</span>
+                                    <span class="friend-exercise-sets">${ex.sets.map(s => `${s.weight}kg×${s.reps}`).join(', ')}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch {
+            workoutsEl.innerHTML = '<p class="friend-workouts-empty">Could not load workouts.</p>';
+        }
+    }
+
+    friendAvatarHtml(url) {
+        if (url) {
+            return `<img class="friend-avatar-img" src="${this.escapeHtml(url)}" alt="">`;
+        }
+        return `<svg class="friend-avatar-img friend-avatar-default" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" fill="currentColor"/>
+            <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" fill="currentColor"/>
+        </svg>`;
+    }
+
+    async searchFriend() {
+        const input = document.getElementById('friend-search-input');
+        const result = document.getElementById('friend-search-result');
+        const email = input.value.trim();
+        if (!email) return;
+
+        result.innerHTML = '<p class="friend-search-status">Searching...</p>';
+
+        try {
+            const user = await searchUserByEmail(email);
+            if (!user) {
+                result.innerHTML = '<p class="friend-search-status">No user found with that email.</p>';
+                return;
+            }
+            result.innerHTML = `
+                <div class="friend-card friend-result-card">
+                    <div class="friend-card-info">
+                        ${this.friendAvatarHtml(user.avatar_url)}
+                        <span class="friend-name">${this.escapeHtml(user.display_name || 'Unknown')}</span>
+                    </div>
+                    <div class="friend-card-actions">
+                        <button class="btn btn-primary btn-sm" id="send-request-btn">Add friend</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('send-request-btn').addEventListener('click', async () => {
+                try {
+                    await sendFriendRequest(user.user_id);
+                    result.innerHTML = '<p class="friend-search-status">Friend request sent!</p>';
+                    input.value = '';
+                } catch (e) {
+                    const msg = e.message?.includes('duplicate') ? 'Request already sent.' : 'Could not send request.';
+                    result.innerHTML = `<p class="friend-search-status">${msg}</p>`;
+                }
+            });
+        } catch {
+            result.innerHTML = '<p class="friend-search-status">Search failed. Try again.</p>';
+        }
     }
 
     showConfirm({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', danger = false }) {

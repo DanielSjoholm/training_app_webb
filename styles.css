@@ -1468,11 +1468,6 @@ body {
         min-width: 100%;
     }
     
-    .bottom-nav {
-        flex-direction: column;
-        gap: 12px;
-    }
-    
     .exercise-item {
         flex-direction: column;
         gap: 8px;
@@ -1791,6 +1786,204 @@ body {
 
 #password-form input:focus {
     border-color: var(--border-light);
+}
+
+/* ─── Friends ─────────────────────────────────────────── */
+
+.req-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--error-color);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    padding: 0 4px;
+    margin-left: 5px;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.friends-search {
+    margin-bottom: 28px;
+}
+
+.friends-search-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.friends-search-row input {
+    flex: 1;
+    background: var(--surface-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    outline: none;
+}
+
+.friends-search-row input:focus {
+    border-color: var(--border-light);
+}
+
+.friend-search-status {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    padding: 6px 0;
+}
+
+.friend-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-dark);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    gap: 12px;
+}
+
+.friend-result-card {
+    margin-top: 4px;
+}
+
+.friend-card-accepted {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+}
+
+.friend-card-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.friend-card-toggle {
+    cursor: pointer;
+    padding: 14px 16px;
+    flex: 1;
+}
+
+.friend-card-toggle:hover .friend-name {
+    color: var(--text-primary);
+}
+
+.friend-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.friend-chevron {
+    font-size: 1.1rem;
+    color: var(--text-tertiary);
+    transition: transform 0.18s ease;
+    display: inline-block;
+}
+
+.friend-chevron.open {
+    transform: rotate(90deg);
+}
+
+.friend-avatar-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface-elevated);
+    flex-shrink: 0;
+}
+
+.friend-avatar-default {
+    color: var(--text-tertiary);
+    background: var(--surface-elevated);
+    padding: 4px;
+}
+
+.friend-card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 14px;
+}
+
+.friend-card:not(.friend-card-accepted) .friend-card-actions {
+    padding: 0;
+}
+
+.btn-sm {
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    min-width: unset;
+}
+
+.friends-empty {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 32px 0;
+}
+
+.friend-workouts {
+    border-top: 1px solid var(--border-color);
+    padding: 12px 16px;
+}
+
+.friend-workouts-loading,
+.friend-workouts-empty {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding: 4px 0;
+}
+
+.friend-workout-item {
+    margin-bottom: 14px;
+}
+
+.friend-workout-item:last-child {
+    margin-bottom: 0;
+}
+
+.friend-workout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+}
+
+.friend-workout-program {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.friend-workout-date {
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+}
+
+.friend-exercise-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    padding: 2px 0;
+}
+
+.friend-exercise-name {
+    color: var(--text-secondary);
+}
+
+.friend-exercise-sets {
+    color: var(--text-tertiary);
 }
 
 .settings-message {

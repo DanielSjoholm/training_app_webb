@@ -71,6 +71,7 @@
                         </button>
                         <div class="dropdown" id="account-dropdown" hidden>
                             <button class="dropdown-item" id="menu-profile">Profile</button>
+                            <button class="dropdown-item" id="menu-friends">Friends<span class="req-badge" id="friends-badge" hidden></span></button>
                             <button class="dropdown-item" id="menu-settings">Settings</button>
                             <button class="dropdown-item" id="menu-logout">Log out</button>
                         </div>
@@ -295,6 +296,33 @@
                 <button class="btn btn-secondary" id="add-weight-log">Add</button>
             </div>
             <div id="weight-chart"></div>
+        </div>
+
+        <!-- Friends Screen -->
+        <div id="friends-screen" class="screen">
+            <div class="header">
+                <button class="back-btn" id="back-from-friends">←</button>
+                <h2>Friends</h2>
+            </div>
+
+            <div class="friends-search">
+                <div class="section-label">Find a friend</div>
+                <div class="friends-search-row">
+                    <input type="email" id="friend-search-input" placeholder="Search by email..." autocomplete="off">
+                    <button class="btn btn-primary" id="friend-search-btn">Search</button>
+                </div>
+                <div id="friend-search-result"></div>
+            </div>
+
+            <div id="friend-requests-section" hidden>
+                <div class="section-label">Friend requests</div>
+                <div id="friend-requests-list"></div>
+            </div>
+
+            <div id="friends-list-section">
+                <div class="section-label">My friends</div>
+                <div id="friends-list"></div>
+            </div>
         </div>
 
         <!-- Settings Screen -->
