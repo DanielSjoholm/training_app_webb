@@ -4,18 +4,18 @@
     "description": "Track your workouts and progress with this mobile-friendly training app",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#0f172a",
-    "theme_color": "#1a1a2e",
+    "background_color": "#0a0a0b",
+    "theme_color": "#0a0a0b",
     "orientation": "portrait-primary",
     "icons": [
         {
-            "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMwZWE1ZTkiLz4KPHBhdGggZD0iTTk2IDQ4QzY5LjQ5IDQ4IDQ4IDY5LjQ5IDQ4IDk2QzQ4IDEyMi41MSA2OS40OSAxNDQgOTYgMTQ0QzEyMi41MSAxNDQgMTQ0IDEyMi41MSAxNDQgOTZDMTQ0IDY5LjQ5IDEyMi41MSA0OCA5NiA0OFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik05NiA2NEM3NC4wMSA2NCA1NiA4Mi4wMSA1NiAxMDRDNzQuMDEgMTI2IDEyNiA3NC4wMSAxMjYgNTJDNTEuOTkgNzQuMDEgNzQgMTI2IDk2IDEwNEM5NiA4Mi4wMSA3NC4wMSA2NCA5NiA2NFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=",
+            "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0MCIgZmlsbD0iI2ZhZmFmYSIvPjx0ZXh0IHg9Ijk2IiB5PSIxMDQiIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxSb2JvdG8sQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4NCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzBhMGEwYiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9Ii0zIj5UVDwvdGV4dD48L3N2Zz4=",
             "sizes": "192x192",
             "type": "image/svg+xml",
             "purpose": "any maskable"
         },
         {
-            "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iNjQiIGZpbGw9IiMwZWE1ZTkiLz4KPHBhdGggZD0iTTI1NiAxMjhDMTg1LjMxIDEyOCAxMjggMTg1LjMxIDEyOCAyNTZDMjU2IDM4NC42OSAzODQgMTg1LjMxIDM4NCAyNTZDMzg0IDE4NS4zMSAzMjYuNjkgMTI4IDI1NiAxMjhaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMjU2IDE3MkMyMTkuMzEgMTcyIDE5MiAxOTkuMzEgMTkyIDIzNkMyNTYgMzQ5LjM4IDMyMCAxOTkuMzEgMzIwIDIzNkMzMjAgMTk5LjMxIDI5Mi42OSAxNzIgMjU2IDE3MloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=",
+            "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMDgiIGZpbGw9IiNmYWZhZmEiLz48dGV4dCB4PSIyNTYiIHk9IjI3OCIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLFJvYm90byxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzBhMGEwYiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9Ii04Ij5UVDwvdGV4dD48L3N2Zz4=",
             "sizes": "512x512",
             "type": "image/svg+xml",
             "purpose": "any maskable"

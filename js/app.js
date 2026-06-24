@@ -138,7 +138,7 @@ export class TrainingApp {
         if (!container) return;
 
         if (!lastWorkout) {
-            container.innerHTML = '<p class="no-last-workout">No previous workout found for this program. Start fresh! 💪</p>';
+            container.innerHTML = '<p class="no-last-workout">No previous workout found for this program. Start fresh.</p>';
             return;
         }
 
@@ -148,8 +148,8 @@ export class TrainingApp {
 
         container.innerHTML = `
             <div class="last-workout-header">
-                <h3>📊 Last Workout (${date})</h3>
-                <span class="last-workout-duration">⏱️ ${this.formatDuration(lastWorkout.duration)}</span>
+                <h3>Last Workout · ${date}</h3>
+                <span class="last-workout-duration">${this.formatDuration(lastWorkout.duration)}</span>
             </div>
             <div class="last-workout-exercises">
                 ${lastWorkout.exercises.map(ex => `
@@ -256,7 +256,7 @@ export class TrainingApp {
                 </div>
                 <div class="exercise-actions">
                     <button class="btn btn-secondary add-set-btn" onclick="app.addSet('${exercise.replace(/\s+/g, '-')}')">
-                        ➕ Add Set
+                        + Add Set
                     </button>
                 </div>
             `;
@@ -316,7 +316,7 @@ export class TrainingApp {
         container.innerHTML = '';
 
         if (this.workouts.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No workouts yet. Start training! 💪</p>';
+            container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No workouts yet. Start training.</p>';
             return;
         }
 
@@ -335,11 +335,11 @@ export class TrainingApp {
                     <span class="workout-program">${workout.programName}</span>
                     <div class="workout-actions">
                         <span class="workout-date">${date}</span>
-                        <button class="btn-delete-workout" onclick="app.deleteWorkout('${workout.id}')" title="Delete workout">🗑️</button>
+                        <button class="btn-delete-workout" onclick="app.deleteWorkout('${workout.id}')" title="Delete workout">×</button>
                     </div>
                 </div>
                 <div class="workout-duration">
-                    <span class="duration-label">⏱️ Total time workout:</span>
+                    <span class="duration-label">Total time</span>
                     <span class="duration-value">${workout.duration ? this.formatDuration(workout.duration) : 'N/A'}</span>
                 </div>
                 <div class="exercise-list">
@@ -373,7 +373,7 @@ export class TrainingApp {
         this.workouts = this.workouts.filter(w => w.id !== workoutId);
         saveWorkouts(this.workouts);
         this.loadHistory();
-        this.showToast('Workout deleted successfully! 🗑️', 'success');
+        this.showToast('Workout deleted', 'success');
     }
 
     filterHistory() {
@@ -413,7 +413,6 @@ export class TrainingApp {
         if (!exerciseName) {
             chartContainer.innerHTML = `
                 <div class="progress-placeholder">
-                    <div class="placeholder-icon">📈</div>
                     <h3>Select an Exercise</h3>
                     <p>Choose an exercise from the dropdown above to view your progress</p>
                 </div>
@@ -432,9 +431,8 @@ export class TrainingApp {
         if (exerciseData.length === 0) {
             chartContainer.innerHTML = `
                 <div class="progress-placeholder">
-                    <div class="placeholder-icon">📊</div>
                     <h3>No Data Yet</h3>
-                    <p>Start tracking this exercise to see your progress!</p>
+                    <p>Start tracking this exercise to see your progress.</p>
                 </div>
             `;
             return;
@@ -616,7 +614,7 @@ export class TrainingApp {
         container.classList.remove('active');
         container.classList.add('completed');
         this.updateRestTimerButtons('completed');
-        this.showToast('Rest complete! Ready for next set 💪', 'success');
+        this.showToast('Rest complete. Ready for next set', 'success');
         setTimeout(() => {
             container.classList.remove('completed');
             this.initializeRestTimer();
@@ -752,7 +750,7 @@ export class TrainingApp {
         this.renderLastWorkout(this.getLastWorkout(this.currentProgram));
         this.showScreen('workout-screen');
         this.startWorkoutTimer();
-        this.showToast('Workout session restored! 💪', 'success');
+        this.showToast('Workout session restored', 'success');
     }
 
     // --- Workout timer ---
@@ -862,7 +860,7 @@ export class TrainingApp {
         try {
             const id = await saveWorkoutToCloud(workoutData);
             workoutData.id = id;
-            this.showToast('Workout saved! 💪', 'success');
+            this.showToast('Workout saved', 'success');
         } catch {
             this.showToast('Sparad lokalt — ingen internetanslutning', 'info');
         }
