@@ -62,6 +62,20 @@ Defined and exported from `js/programs.js`. The key matches the `data-program` a
 
 CSS custom properties are declared on `:root` in `styles.css` — always use variables for colors rather than hardcoded values. The rest timer's circular countdown is rendered via `conic-gradient` on `.rest-timer-progress`; the JS updates the `background` property directly on that element.
 
+## TODO
+
+### Cloud-backed data persistence (Supabase)
+
+All workout data is currently stored in `localStorage` which is lost if the user clears site data. The plan is to migrate to **Supabase** (free tier, PostgreSQL) so data survives across devices and browser resets.
+
+Approach:
+- Keep `js/storage.js` as the interface — swap localStorage calls for Supabase client calls there
+- Add user authentication (Supabase Auth) so each user's data is isolated
+- Keep localStorage as an offline fallback (write to both, read from Supabase when online)
+- The data model maps cleanly to a `workouts` table matching the existing JSON structure
+
+---
+
 ### Service Worker
 
 `sw.js` uses a cache-first strategy with cache name `training-tracker-v2`. When adding new static assets or JS modules, add them to the `urlsToCache` array in `sw.js` and bump the cache version to force re-cache on update.
