@@ -44,10 +44,15 @@ export class TrainingApp {
 
         onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN') {
+                // Fires on real login AND on resume/token refresh. Ignore the latter
+                // so we don't wipe an in-progress workout when returning to the app.
+                if (this.user && session?.user?.id === this.user.id) return;
                 await this.loadUserData();
                 clearWorkoutState();
                 this.showScreen('main-menu');
             } else if (event === 'SIGNED_OUT') {
+                this.user = null;
+                this.profile = null;
                 this.workouts = [];
                 saveWorkouts([]);
                 this.showScreen('auth-screen');

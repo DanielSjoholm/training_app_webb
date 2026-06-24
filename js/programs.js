@@ -31,6 +31,14 @@ export const programs = {
             'Hammer Curl'
         ]
     },
+    'shoulder': {
+        name: 'Shoulder',
+        exercises: [
+            'Shoulder Press',
+            'Lateral Raise',
+            'Reverse Flies'
+        ]
+    },
     'back': {
         name: 'PullPass',
         exercises: [
@@ -46,6 +54,14 @@ export const programs = {
             'Squats',
             'Deadlifts',
             'Hipthrusters'
+        ]
+    },
+    'glutes': {
+        name: 'Glutes',
+        exercises: [
+            'Hip Thrusters',
+            'Bulgarian Split Squat',
+            'Romanian Deadlift'
         ]
     },
     'abs': {
