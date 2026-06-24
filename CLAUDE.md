@@ -12,32 +12,37 @@ python -m http.server 8000
 npx serve .
 ```
 
-Open `http://localhost:8000`. PWA features (service worker, install prompt) require HTTPS in production.
+Open `http://localhost:8000`. PWA features (service worker, install prompt) require HTTPS in production. Auth and cloud data require a network connection (Supabase); the app falls back to cached `localStorage` data when offline.
 
-The `test.html` page at `http://localhost:8000/test.html` provides manual LocalStorage validation and program data tests useful during development.
+See `training-tracker.md` for the running log of what's built, the Supabase schema, and the TODO backlog.
 
 ## Architecture
 
-This is a **no-dependency vanilla JS PWA** using ES modules. There is no build step, no bundler, no framework, and no backend.
+This is a **vanilla JS PWA** using ES modules with a **Supabase backend** (auth, Postgres, storage). There is no build step, no bundler, and no framework. The only external dependencies are loaded at runtime from a CDN: the Supabase client and Cropper.js (avatar cropping).
 
 ```
 js/
 ├── main.js       # Entry point — instantiates TrainingApp, registers service worker
 ├── app.js        # TrainingApp class — all UI logic and screen management
 ├── programs.js   # Pure data: training program definitions and motivational quotes
-└── storage.js    # LocalStorage wrapper — thin functions over the three storage keys
+├── storage.js    # Data layer — localStorage cache + Supabase reads/writes (workouts, profile, weight logs, avatar)
+├── supabase.js   # Creates the Supabase client
+├── config.js     # Supabase URL + publishable key (safe to commit; secured by RLS)
+└── auth.js       # Auth helpers — sign in/up/out, session, password update, account deletion
 ```
 
 ### TrainingApp class (`js/app.js`)
 
 All UI logic lives here. Key responsibilities:
 
-- **Screen navigation** — `showScreen(screenId)` toggles one `.screen.active` at a time. The four screens (`#main-menu`, `#workout-screen`, `#history-screen`, `#progress-screen`) are always present in the DOM; only visibility changes.
-- **State** — All persistence is browser `localStorage` via three keys (managed in `js/storage.js`):
-  - `training-workouts` — array of completed workout objects
+- **Screen navigation** — `showScreen(screenId)` toggles one `.screen.active` at a time. All screens (`#auth-screen`, `#main-menu`, `#workout-screen`, `#history-screen`, `#progress-screen`, `#profile-screen`, `#settings-screen`) are always in the DOM; only visibility changes. On load, the session decides whether to show auth or main menu.
+- **State** — Workouts and profile data live in Supabase (per-user, RLS-enforced), with `localStorage` as an offline cache. `localStorage` also holds transient state via three keys:
+  - `training-workouts` — cached copy of the user's workouts
   - `training-form-data` — auto-saved in-progress form inputs (survives refresh)
   - `training-workout-state` — full workout session state for 24-hour recovery
+  - `training-theme` — light/dark preference (applied pre-render by an inline script in `index.html`)
 - **Timers** — workout timer runs at 1s intervals; rest timer at 100ms intervals for smooth circular progress animation using `conic-gradient`.
+- **Dialogs** — `showConfirm()` renders a custom promise-based modal; native `confirm()` is not used.
 
 ### Data model
 
@@ -93,50 +98,10 @@ Before any commit or push, state:
 
 Wait for confirmation before proceeding.
 
----
-
-## TODO
-
-### Cloud-backed data persistence (Supabase)
-
-All workout data is currently stored in `localStorage` which is lost if the user clears site data. The plan is to migrate to **Supabase** (free tier, PostgreSQL) so data survives across devices and browser resets.
-
-Approach:
-- Keep `js/storage.js` as the interface — swap localStorage calls for Supabase client calls there
-- Add user authentication (Supabase Auth) so each user's data is isolated
-- Keep localStorage as an offline fallback (write to both, read from Supabase when online)
-- The data model maps cleanly to a `workouts` table matching the existing JSON structure
-
-### Modernize the app
-
-The current UI is functional but basic. Planned improvements:
-- Smoother animations and transitions between screens
-- Better visual feedback on interactions (haptic-style button press effects)
-- Improved typography and spacing
-- Enhanced progress charts (e.g. line charts, volume tracking)
-- Consider a component-based structure if complexity grows
-
-### Social — vänner och delning
-
-Möjlighet att lägga till vänner och se deras träningspass.
-
-Approach:
-- Lägg till en `friendships`-tabell i Supabase med `user_id` och `friend_id` (och status: pending/accepted)
-- RLS-policy som tillåter användare att läsa vänners workouts om vänskapen är accepterad
-- UI: sök på e-post för att hitta användare, skicka vänskapsförfrågan, acceptera/neka
-- Ny vy i appen — "Friends" — som listar vänners senaste träningspass (read-only)
-- Notis (toast) när en vän sparar ett träningspass (kräver realtime-subscription via Supabase Realtime)
-
-### Custom domain
-
-Register and configure a custom domain for the app so it can be accessed via a proper URL instead of a GitHub Pages subdomain. Steps when ready:
-- Purchase a domain (e.g. via Namecheap or Cloudflare)
-- Point DNS to the hosting provider
-- Enable HTTPS (required for PWA features like service worker and install prompt)
-- Update `manifest.json` start URL and any hardcoded paths if needed
-
----
-
 ### Service Worker
 
-`sw.js` uses a cache-first strategy with cache name `training-tracker-v2`. When adding new static assets or JS modules, add them to the `urlsToCache` array in `sw.js` and bump the cache version to force re-cache on update.
+`sw.js` uses a cache-first strategy with a versioned cache name (e.g. `training-tracker-v10`). When adding new local static assets or JS modules, add them to the `urlsToCache` array in `sw.js` **and** bump the cache version to force re-cache on update. (CDN dependencies like Supabase and Cropper.js are not cached locally.)
+
+## Status & backlog
+
+What's been built, the Supabase schema, and the TODO backlog live in `training-tracker.md`. Keep it updated at the end of each session.
