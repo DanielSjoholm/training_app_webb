@@ -21,6 +21,17 @@ export async function getUser() {
     return data.user;
 }
 
+export async function updatePassword(newPassword) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+}
+
+export async function deleteAccount() {
+    const { error } = await supabase.rpc('delete_user');
+    if (error) throw error;
+    await supabase.auth.signOut();
+}
+
 export async function signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;

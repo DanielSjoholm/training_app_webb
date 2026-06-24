@@ -9,6 +9,13 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0b">
     <meta name="description" content="Track your workouts and progress with this mobile-friendly training app">
+    <script>
+        // Apply saved theme before render to avoid a flash
+        (function () {
+            const theme = localStorage.getItem('training-theme');
+            if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
 </head>
 <body>
     <div id="app">
@@ -64,6 +71,7 @@
                         </button>
                         <div class="dropdown" id="account-dropdown" hidden>
                             <button class="dropdown-item" id="menu-profile">Profile</button>
+                            <button class="dropdown-item" id="menu-settings">Settings</button>
                             <button class="dropdown-item" id="menu-logout">Log out</button>
                         </div>
                     </div>
@@ -277,6 +285,47 @@
                 <button class="btn btn-secondary" id="add-weight-log">Add</button>
             </div>
             <div id="weight-chart"></div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div id="settings-screen" class="screen">
+            <div class="header">
+                <button class="back-btn" id="back-from-settings">←</button>
+                <h2>Settings</h2>
+            </div>
+
+            <div class="settings-section">
+                <div class="section-label">Appearance</div>
+                <div class="settings-row">
+                    <span>Theme</span>
+                    <div class="theme-toggle" id="theme-toggle">
+                        <button class="theme-option" data-theme="dark">Dark</button>
+                        <button class="theme-option" data-theme="light">Light</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="section-label">Change password</div>
+                <form id="password-form">
+                    <div class="field">
+                        <label for="new-password">New password</label>
+                        <input type="password" id="new-password" placeholder="••••••••" autocomplete="new-password" minlength="6">
+                    </div>
+                    <div class="field">
+                        <label for="confirm-password">Confirm password</label>
+                        <input type="password" id="confirm-password" placeholder="••••••••" autocomplete="new-password" minlength="6">
+                    </div>
+                    <p class="settings-message" id="password-message"></p>
+                    <button type="submit" class="btn btn-primary btn-full" id="save-password">Update password</button>
+                </form>
+            </div>
+
+            <div class="settings-section danger-zone">
+                <div class="section-label">Danger zone</div>
+                <p class="danger-text">Permanently delete your account and all your data. This cannot be undone.</p>
+                <button class="btn btn-danger btn-full" id="delete-account-btn">Delete account</button>
+            </div>
         </div>
 
     </div>

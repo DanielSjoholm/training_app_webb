@@ -27,6 +27,33 @@
     --transition: all 0.18s ease;
 }
 
+:root[data-theme="light"] {
+    --background-dark: #f4f4f5;
+    --surface-dark: #ffffff;
+    --surface-elevated: #ffffff;
+    --surface-hover: #f0f0f2;
+    --border-color: #e4e4e7;
+    --border-light: #d4d4d8;
+
+    --text-primary: #18181b;
+    --text-secondary: #52525b;
+    --text-tertiary: #a1a1aa;
+
+    --primary-color: #18181b;
+    --primary-dark: #000000;
+    --on-primary: #fafafa;
+    --accent-color: #3f3f46;
+
+    --success-color: #059669;
+    --error-color: #dc2626;
+
+    --shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="light"] body {
+    color-scheme: light;
+}
+
 /* Reset and base styles */
 * {
     margin: 0;
@@ -1584,12 +1611,103 @@ body {
 }
 
 .btn-danger {
-    background: var(--error-color);
-    color: #1a0a0a;
+    background: #dc2626;
+    color: #ffffff;
 }
 
 .btn-danger:hover {
-    background: #f43f5e;
+    background: #b91c1c;
+}
+
+/* Settings screen */
+.settings-section {
+    background: var(--surface-dark);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.settings-section .section-label {
+    margin-bottom: 16px;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.settings-row > span {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.theme-toggle {
+    display: flex;
+    background: var(--background-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 4px;
+    gap: 2px;
+}
+
+.theme-option {
+    padding: 8px 18px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.theme-option.active {
+    background: var(--surface-elevated);
+    color: var(--text-primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+#password-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+#password-form input {
+    width: 100%;
+    padding: 13px 16px;
+    background: var(--background-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    outline: none;
+    transition: var(--transition);
+}
+
+#password-form input:focus {
+    border-color: var(--border-light);
+}
+
+.settings-message {
+    font-size: 0.85rem;
+    color: var(--error-color);
+    min-height: 18px;
+}
+
+.danger-zone {
+    border-color: rgba(220, 38, 38, 0.35);
+}
+
+.danger-text {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 16px;
 }
 
 /* Crop modal */
