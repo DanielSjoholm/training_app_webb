@@ -1,10 +1,12 @@
 import { programs, motivationalQuotes } from './programs.js';
+import { exercisesForProgram } from './exercises.js';
 import {
     loadWorkouts, saveWorkouts,
     loadWorkoutState, saveWorkoutState, clearWorkoutState,
     getFormData, setFormData, clearFormData,
     fetchWorkoutsFromCloud, saveWorkoutToCloud, deleteWorkoutFromCloud,
-    fetchProfile, saveProfile, fetchWeightLogs, addWeightLog, uploadAvatar
+    fetchProfile, saveProfile, fetchWeightLogs, addWeightLog, uploadAvatar,
+    saveProgramExercises
 } from './storage.js';
 import { signIn, signUp, signOut, getSession, onAuthStateChange, getUser, updatePassword, deleteAccount } from './auth.js';
 
@@ -24,6 +26,7 @@ export class TrainingApp {
         this.authMode = 'login';
         this.profile = null;
         this.user = null;
+        this.workoutExercises = [];
 
         this.init();
     }
@@ -618,35 +621,170 @@ export class TrainingApp {
 
     // --- Workout form ---
 
+    // Safe DOM id from an exercise name (handles spaces, slashes, parentheses).
+    exId(name) {
+        return name.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     renderWorkoutForm(exercises) {
+        this.workoutExercises = [...exercises];
         const container = document.getElementById('exercises-container');
         container.innerHTML = '';
 
-        exercises.forEach(exercise => {
-            const exerciseEntry = document.createElement('div');
-            exerciseEntry.className = 'exercise-entry';
-            exerciseEntry.innerHTML = `
-                <div class="exercise-name">${exercise}</div>
-                <div class="sets-container" id="sets-${exercise.replace(/\s+/g, '-')}">
-                    <div class="set-row set-header">
-                        <div class="set-number">Set</div>
-                        <div class="set-weight">Weight (kg)</div>
-                        <div class="set-reps">Reps</div>
-                        <div class="set-actions"></div>
-                    </div>
-                    <div class="sets-list" id="sets-list-${exercise.replace(/\s+/g, '-')}"></div>
-                </div>
-                <div class="exercise-actions">
-                    <button class="btn btn-secondary add-set-btn" onclick="app.addSet('${exercise.replace(/\s+/g, '-')}')">
-                        + Add Set
-                    </button>
-                </div>
-            `;
-            container.appendChild(exerciseEntry);
-            this.addSet(exercise.replace(/\s+/g, '-'));
+        this.workoutExercises.forEach(exercise => {
+            container.appendChild(this.buildExerciseCard(exercise));
+            this.addSet(this.exId(exercise));
         });
 
+        container.appendChild(this.buildAddExerciseButton());
         this.addFormDataListeners();
+    }
+
+    buildExerciseCard(exercise) {
+        const id = this.exId(exercise);
+        const entry = document.createElement('div');
+        entry.className = 'exercise-entry';
+        entry.dataset.exercise = exercise;
+        entry.innerHTML = `
+            <div class="exercise-header">
+                <div class="exercise-name">${this.escapeHtml(exercise)}</div>
+                <button class="remove-exercise-btn" title="Remove exercise" aria-label="Remove exercise">✕</button>
+            </div>
+            <div class="sets-container" id="sets-${id}">
+                <div class="set-row set-header">
+                    <div class="set-number">Set</div>
+                    <div class="set-weight">Weight (kg)</div>
+                    <div class="set-reps">Reps</div>
+                    <div class="set-actions"></div>
+                </div>
+                <div class="sets-list" id="sets-list-${id}"></div>
+            </div>
+            <div class="exercise-actions">
+                <button class="btn btn-secondary add-set-btn" onclick="app.addSet('${id}')">+ Add Set</button>
+            </div>
+        `;
+        entry.querySelector('.remove-exercise-btn').addEventListener('click', () => this.removeExercise(exercise));
+        return entry;
+    }
+
+    buildAddExerciseButton() {
+        const wrap = document.createElement('div');
+        wrap.className = 'add-exercise-wrap';
+        wrap.innerHTML = '<button class="add-exercise-btn" id="add-exercise-btn">+ Add exercise</button>';
+        wrap.querySelector('#add-exercise-btn').addEventListener('click', () => this.openExercisePicker());
+        return wrap;
+    }
+
+    async removeExercise(exercise) {
+        if (this.workoutExercises.length <= 1) {
+            this.showToast('A workout needs at least one exercise', 'info');
+            return;
+        }
+        this.workoutExercises = this.workoutExercises.filter(e => e !== exercise);
+        const card = document.querySelector(`.exercise-entry[data-exercise="${this.cssEscape(exercise)}"]`);
+        if (card) card.remove();
+        this.saveFormData();
+        this.persistProgramExercises();
+    }
+
+    cssEscape(value) {
+        return window.CSS && CSS.escape ? CSS.escape(value) : value.replace(/["\\]/g, '\\$&');
+    }
+
+    addExerciseToWorkout(exercise) {
+        if (this.workoutExercises.includes(exercise)) {
+            this.showToast('Already in this workout', 'info');
+            return;
+        }
+        this.workoutExercises.push(exercise);
+        const addWrap = document.querySelector('.add-exercise-wrap');
+        const card = this.buildExerciseCard(exercise);
+        document.getElementById('exercises-container').insertBefore(card, addWrap);
+        this.addSet(this.exId(exercise));
+        this.addFormDataListeners();
+        this.saveFormData();
+        this.persistProgramExercises();
+    }
+
+    async persistProgramExercises() {
+        if (!this.currentProgram) return;
+        const map = { ...(this.profile?.program_exercises || {}) };
+        map[this.currentProgram] = [...this.workoutExercises];
+        this.profile = { ...(this.profile || {}), program_exercises: map };
+        try {
+            await saveProgramExercises(map);
+        } catch {
+            /* offline — kept in localStorage-backed profile object for this session */
+        }
+    }
+
+    openExercisePicker() {
+        const candidates = exercisesForProgram(this.currentProgram)
+            .filter(ex => !this.workoutExercises.includes(ex.name));
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+            <div class="modal picker-modal" role="dialog" aria-modal="true">
+                <h3 class="modal-title">Add exercise</h3>
+                <div class="picker-list">
+                    ${candidates.length
+                        ? candidates.map(ex => `
+                            <button class="picker-item" data-name="${this.escapeHtml(ex.name)}"${ex.variants ? ` data-variants="${this.escapeHtml(ex.variants.join('|'))}"` : ''}>
+                                <span>${this.escapeHtml(ex.name)}</span>
+                                ${ex.variants ? '<span class="picker-chevron">›</span>' : ''}
+                            </button>
+                        `).join('')
+                        : '<p class="picker-empty">No more exercises for this muscle group.</p>'}
+                </div>
+                <div class="modal-actions">
+                    <button class="btn modal-cancel">Close</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => overlay.classList.add('visible'));
+
+        const close = () => {
+            overlay.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 200);
+        };
+
+        overlay.querySelector('.modal-cancel').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+        overlay.querySelectorAll('.picker-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const name = btn.dataset.name;
+                const variants = btn.dataset.variants ? btn.dataset.variants.split('|') : null;
+                if (variants) {
+                    this.showVariantStep(overlay, name, variants, close);
+                } else {
+                    this.addExerciseToWorkout(name);
+                    close();
+                }
+            });
+        });
+    }
+
+    showVariantStep(overlay, name, variants, close) {
+        const modal = overlay.querySelector('.modal');
+        modal.querySelector('.modal-title').textContent = name;
+        modal.querySelector('.picker-list').innerHTML = variants.map(v => `
+            <button class="picker-item picker-variant" data-variant="${this.escapeHtml(v)}">
+                <span>${this.escapeHtml(v)}</span>
+            </button>
+        `).join('');
+        modal.querySelectorAll('.picker-variant').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.addExerciseToWorkout(`${name} (${btn.dataset.variant})`);
+                close();
+            });
+        });
     }
 
     addSet(exerciseId) {
@@ -1049,10 +1187,9 @@ export class TrainingApp {
         if (!this.isWorkoutActive || !this.currentProgram) return;
 
         const formData = { program: this.currentProgram, exercises: {} };
-        const program = programs[this.currentProgram];
 
-        program.exercises.forEach(exercise => {
-            const exerciseId = exercise.replace(/\s+/g, '-');
+        this.workoutExercises.forEach(exercise => {
+            const exerciseId = this.exId(exercise);
             const setsContainer = document.getElementById(`sets-${exerciseId}`);
             if (!setsContainer) return;
 
@@ -1135,8 +1272,11 @@ export class TrainingApp {
         this.workoutDuration = this.workoutState.duration + (Date.now() - this.workoutState.timestamp);
 
         const program = programs[this.currentProgram];
+        const exercises = Array.isArray(this.workoutState.exercises) && this.workoutState.exercises.length
+            ? this.workoutState.exercises
+            : program.exercises;
         document.getElementById('workout-title').textContent = program.name;
-        this.renderWorkoutForm(program.exercises);
+        this.renderWorkoutForm(exercises);
         this.initializeRestTimer();
         setTimeout(() => this.loadFormData(), 100);
         this.renderLastWorkout(this.getLastWorkout(this.currentProgram));
@@ -1161,6 +1301,7 @@ export class TrainingApp {
             if (this.isWorkoutActive && this.currentProgram) {
                 saveWorkoutState({
                     program: this.currentProgram,
+                    exercises: this.workoutExercises,
                     startTime: this.workoutStartTime,
                     duration: this.workoutDuration,
                     isActive: this.isWorkoutActive,
@@ -1194,14 +1335,18 @@ export class TrainingApp {
         this.initializeRestTimer();
 
         const program = programs[programId];
+        const saved = this.profile?.program_exercises?.[programId];
+        const exercises = Array.isArray(saved) && saved.length ? saved : program.exercises;
+
         document.getElementById('workout-title').textContent = program.name;
-        this.renderWorkoutForm(program.exercises);
+        this.renderWorkoutForm(exercises);
         this.renderLastWorkout(this.getLastWorkout(programId));
         this.showScreen('workout-screen');
         this.startWorkoutTimer();
 
         saveWorkoutState({
             program: this.currentProgram,
+            exercises: this.workoutExercises,
             startTime: this.workoutStartTime,
             duration: this.workoutDuration,
             isActive: this.isWorkoutActive,
@@ -1233,9 +1378,10 @@ export class TrainingApp {
             exercises: []
         };
 
-        program.exercises.forEach(exercise => {
-            const exerciseId = exercise.replace(/\s+/g, '-');
+        this.workoutExercises.forEach(exercise => {
+            const exerciseId = this.exId(exercise);
             const setsContainer = document.getElementById(`sets-${exerciseId}`);
+            if (!setsContainer) return;
             const setRows = setsContainer.querySelector('.sets-list').querySelectorAll('.set-row');
             const exerciseData = { name: exercise, sets: [] };
 
