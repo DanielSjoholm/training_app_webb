@@ -51,6 +51,34 @@ Running record of what's been built and what's next. Update this at the end of e
 - Friend cards expand inline to show their 5 latest workouts (lazy-loaded)
 - Pending-request badge on the Friends menu item
 
+### Progress page — line chart + best set
+- Replaced the bar chart with a hand-built SVG line chart (no external library): grid lines, polyline, dots, date/weight labels, and a click-to-reveal tooltip per point.
+- Summary now shows the **best set** (weight × reps) instead of just best weight.
+
+### Deployment + custom domain
+- Deployed via **GitHub Pages**; custom domain **fittracker.se** (CNAME committed).
+- DNS managed through **Cloudflare** (free tier, all records "DNS only" — GitHub Pages needs a direct connection, not proxied). Nameservers switched at Loopia to Cloudflare.
+- "Enforce HTTPS" enabled in GitHub Pages settings (required for the PWA service worker + install prompt).
+- `manifest.json` `start_url` is the absolute `https://fittracker.se/`; service worker caches assets relative to `self.registration.scope` so it works on the custom domain.
+- PWA installs to the Android home screen from the live site.
+
+### Rebrand — FitTracker
+- Logo mark changed from "TT" to "FT" (auth screen + main-menu header, and the base64 SVG app icons in `manifest.json`).
+- Main-menu header now reads **FitTracker**; the auth/login screen keeps "Training Tracker".
+
+### Visual theme — gym background + transparent UI
+- Gym photo background fixed behind all screens via a `.bg-wrap` element (`background-size: cover`). The source image had baked-in black letterbox bars that showed on narrow viewports; cropped to `images/gym_v2.png`.
+- Light theme swaps to a brighter gym photo (`images/gym_light.jpg`) with a white wash so dark text stays readable.
+- Cards/boxes throughout (program buttons, auth card, settings sections, account dropdown, and all workout boxes) are semi-transparent with a light border + backdrop blur, with per-theme overrides so both dark and light stay legible.
+- Dark theme remains the default for all users; light is opt-in via Settings (stored in `localStorage` per device).
+
+### Global account menu
+- The avatar + dropdown (Profile · Friends · Settings · Log out) moved out of the main-menu header into a single global, fixed top-right element shown on every screen **except** the auth screen and during an active workout.
+
+### Two-level exercise variants
+- Exercises can now carry an optional `subVariants` second choice asked after the variant. Example: **Cable Curl** → attachment (Bar/Rope/Handle) → direction (Front/Back), saved as e.g. `Cable Curl (Handle, Front)`.
+- Added Hammer Curl equipment variants (Dumbbell/Cable) and a new **Chest Supported T-Bar Row** (back / PullPass).
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)
@@ -96,14 +124,11 @@ Deferred from the Settings work. Let users switch measurement system; store the 
 ### Native mobile app
 From earlier discussion: the Supabase backend carries over fully. Lowest-effort path to the App Store / Play Store is **Capacitor** — wraps the existing web app in a native shell, so the current frontend ships largely as-is. (React Native/Flutter would be a rewrite.)
 
-### Custom domain
-**Best done together with the native-app step** — once we go native, the domain stops being "the app" and becomes the landing page + policy/support pages + auth/deep-link host. Not urgent on its own; only do it sooner if we want to share the web/PWA version in the meantime.
-- Buy a domain (e.g. Namecheap or Cloudflare)
-- Point DNS at the host; enable HTTPS (required for PWA service worker + install prompt)
-- Update `manifest.json` start URL / any hardcoded paths if needed
-- Will also serve: privacy policy + support URLs (required by App Store / Play Store), Supabase auth email links, and native deep links / universal links
+### Custom domain ✓ Done
+- Live on **fittracker.se** via GitHub Pages + Cloudflare DNS, HTTPS enforced, PWA installable. See the "Deployment + custom domain" entry under Done.
+- Still to come when we go native: privacy policy + support URLs (App Store / Play Store), Supabase auth email links, and native deep / universal links.
 
 ### Modernize — polish leftovers
 - Smoother screen transitions and button press feedback
-- Enhanced progress charts (line charts, total-volume tracking)
+- Total-volume tracking on the progress page (line chart + best set already done)
 - Consider a component structure if complexity grows
