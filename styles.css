@@ -11,13 +11,7 @@ html, body {
     bottom: 0;
     left: 0;
     z-index: 0;
-    overflow: hidden;
-}
-
-.bg-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    background: url('images/gym_v2.png') center/cover no-repeat;
     filter: brightness(0.28);
 }
 
@@ -79,38 +73,56 @@ html, body {
 }
 
 :root[data-theme="light"] .bg-wrap {
-    display: none;
+    background: linear-gradient(rgba(244, 244, 245, 0.72), rgba(244, 244, 245, 0.72)), url('images/gym_light.jpg') center/cover no-repeat;
+    filter: none;
 }
 
 :root[data-theme="light"] .auth-card {
-    background: var(--surface-dark);
-    border-color: var(--border-color);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.45);
+    border-color: rgba(0, 0, 0, 0.18);
 }
 
 :root[data-theme="light"] .auth-tabs {
-    background: var(--background-dark);
-    border-color: var(--border-color);
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(0, 0, 0, 0.15);
 }
 
 :root[data-theme="light"] .program-btn {
-    background: var(--surface-dark);
-    border-color: var(--border-color);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.45);
+    border-color: rgba(0, 0, 0, 0.18);
 }
 
 :root[data-theme="light"] .program-btn:hover {
-    background: var(--surface-hover);
-    border-color: var(--border-light);
+    background: rgba(255, 255, 255, 0.65);
+    border-color: rgba(0, 0, 0, 0.3);
 }
 
 :root[data-theme="light"] .settings-section {
-    background: var(--surface-dark);
-    border-color: var(--border-color);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.45);
+    border-color: rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="light"] .dropdown {
+    background: rgba(255, 255, 255, 0.6);
+    border-color: rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="light"] .dropdown-item {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="light"] .dropdown-item:hover {
+    background: rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="light"] .workout-timer-container,
+:root[data-theme="light"] #last-workout-container,
+:root[data-theme="light"] .exercise-entry,
+:root[data-theme="light"] .rest-timer-container {
+    background: rgba(255, 255, 255, 0.45);
+    border-color: rgba(0, 0, 0, 0.18);
 }
 
 /* Reset and base styles */
@@ -379,9 +391,12 @@ body {
     min-height: 20px;
 }
 
-/* Account avatar + dropdown */
+/* Account avatar + dropdown — global, fixed top-right, aligned to the 720px column */
 .avatar-menu {
-    position: relative;
+    position: fixed;
+    top: 20px;
+    right: max(20px, calc((100vw - 720px) / 2 + 20px));
+    z-index: 50;
 }
 
 .avatar-btn {
@@ -417,33 +432,36 @@ body {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    min-width: 160px;
-    background: var(--surface-elevated);
-    border: 1px solid var(--border-color);
+    min-width: 130px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 12px;
-    padding: 6px;
+    padding: 5px;
     box-shadow: var(--shadow);
     z-index: 100;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 5px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 .dropdown-item {
-    text-align: left;
-    background: transparent;
-    border: none;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     color: var(--text-primary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
-    padding: 10px 12px;
+    padding: 9px 14px;
     border-radius: 8px;
     cursor: pointer;
     transition: var(--transition);
 }
 
 .dropdown-item:hover {
-    background: var(--surface-hover);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.35);
 }
 
 /* Profile screen */
@@ -574,9 +592,11 @@ body {
     gap: 8px;
     margin-top: 12px;
     padding: 8px 16px;
-    background: var(--surface-dark);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .timer-label {
@@ -593,11 +613,13 @@ body {
 
 /* Last workout styles */
 #last-workout-container {
-    background: var(--background-dark);
-    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: var(--border-radius);
     padding: 20px;
     margin-bottom: 24px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     border-left: 4px solid var(--accent-color);
 }
 
@@ -771,12 +793,14 @@ body {
 }
 
 .exercise-entry {
-    background: var(--surface-dark);
-    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: var(--border-radius);
     padding: 20px;
     margin-bottom: 16px;
     transition: var(--transition);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .exercise-entry:hover {
@@ -1182,11 +1206,13 @@ body {
 
 /* Rest Timer Styles */
 .rest-timer-container {
-    background: var(--surface-dark);
-    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: var(--border-radius);
     padding: 20px;
     margin-bottom: 24px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     text-align: center;
     border-left: 4px solid var(--accent-color);
 }

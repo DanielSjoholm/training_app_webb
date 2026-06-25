@@ -18,8 +18,21 @@
     </script>
 </head>
 <body>
-    <div class="bg-wrap">
-        <img class="bg-img" src="images/gym.png" aria-hidden="true">
+    <div class="bg-wrap"></div>
+    <div class="avatar-menu" id="global-avatar-menu" hidden>
+        <button class="avatar-btn" id="avatar-btn" aria-label="Account menu" aria-expanded="false">
+            <img class="avatar-img" id="header-avatar-img" alt="" hidden>
+            <svg class="avatar-default" id="header-avatar-default" viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" fill="currentColor"/>
+                <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" fill="currentColor"/>
+            </svg>
+        </button>
+        <div class="dropdown" id="account-dropdown" hidden>
+            <button class="dropdown-item" id="menu-profile">Profile</button>
+            <button class="dropdown-item" id="menu-friends">Friends<span class="req-badge" id="friends-badge" hidden></span></button>
+            <button class="dropdown-item" id="menu-settings">Settings</button>
+            <button class="dropdown-item" id="menu-logout">Log out</button>
+        </div>
     </div>
     <div id="app">
 
@@ -63,21 +76,6 @@
                     <div class="brand">
                         <span class="brand-mark brand-mark-sm">FT</span>
                         <span class="brand-name">FitTracker</span>
-                    </div>
-                    <div class="avatar-menu">
-                        <button class="avatar-btn" id="avatar-btn" aria-label="Account menu" aria-expanded="false">
-                            <img class="avatar-img" id="header-avatar-img" alt="" hidden>
-                            <svg class="avatar-default" id="header-avatar-default" viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
-                                <circle cx="12" cy="8" r="4" fill="currentColor"/>
-                                <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" fill="currentColor"/>
-                            </svg>
-                        </button>
-                        <div class="dropdown" id="account-dropdown" hidden>
-                            <button class="dropdown-item" id="menu-profile">Profile</button>
-                            <button class="dropdown-item" id="menu-friends">Friends<span class="req-badge" id="friends-badge" hidden></span></button>
-                            <button class="dropdown-item" id="menu-settings">Settings</button>
-                            <button class="dropdown-item" id="menu-logout">Log out</button>
-                        </div>
                     </div>
                 </div>
                 <p class="motivational-quote" id="quote"></p>

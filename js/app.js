@@ -602,6 +602,11 @@ export class TrainingApp {
         document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
 
+        // Global avatar menu is shown on every screen except auth and during a workout
+        this.closeAccountMenu();
+        document.getElementById('global-avatar-menu').hidden =
+            (screenId === 'auth-screen' || screenId === 'workout-screen');
+
         if (screenId === 'history-screen') this.loadHistory();
         else if (screenId === 'progress-screen') this.loadProgress();
         else if (screenId === 'friends-screen') this.loadFriendsScreen();
