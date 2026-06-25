@@ -1,55 +1,39 @@
-// Service Worker for Training Tracker App
-const CACHE_NAME = 'training-tracker-v13';
-const urlsToCache = [
-    '/',
-    '/index.html',
-    '/styles.css',
-    '/manifest.json',
-    '/js/main.js',
-    '/js/app.js',
-    '/js/programs.js',
-    '/js/exercises.js',
-    '/js/storage.js',
-    '/js/config.js',
-    '/js/supabase.js',
-    '/js/auth.js',
-    '/js/friends.js'
+const CACHE_NAME = 'training-tracker-v14';
+const ASSETS = [
+    '',
+    'index.html',
+    'styles.css',
+    'manifest.json',
+    'js/main.js',
+    'js/app.js',
+    'js/programs.js',
+    'js/exercises.js',
+    'js/storage.js',
+    'js/config.js',
+    'js/supabase.js',
+    'js/auth.js',
+    'js/friends.js'
 ];
 
-// Install event - cache resources
 self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('Opened cache');
-                return cache.addAll(urlsToCache);
-            })
+        caches.open(CACHE_NAME).then(cache => {
+            const base = self.registration.scope;
+            return cache.addAll(ASSETS.map(p => base + p));
+        })
     );
 });
 
-// Fetch event - serve from cache when offline
 self.addEventListener('fetch', event => {
     event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                // Return cached version or fetch from network
-                return response || fetch(event.request);
-            })
+        caches.match(event.request).then(response => response || fetch(event.request))
     );
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
+        caches.keys().then(keys =>
+            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+        )
     );
 });
