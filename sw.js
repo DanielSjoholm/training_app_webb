@@ -1,4 +1,4 @@
-const CACHE_NAME = 'training-tracker-v15';
+const CACHE_NAME = 'training-tracker-v16';
 const ASSETS = [
     '',
     'index.html',
@@ -12,7 +12,8 @@ const ASSETS = [
     'js/config.js',
     'js/supabase.js',
     'js/auth.js',
-    'js/friends.js'
+    'js/friends.js',
+    'images/gym.png'
 ];
 
 self.addEventListener('install', event => {
