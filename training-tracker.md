@@ -44,20 +44,31 @@ Running record of what's been built and what's next. Update this at the end of e
 - The customised list is **saved per program per user** (`profiles.program_exercises` jsonb) and becomes that program's new default next time.
 - Program defaults and the workout-resume state were aligned to catalog names and now carry the exercise list.
 
+### Social — friends and sharing
+- `friendships` table + 3 security-definer functions (`are_friends`, `find_user_by_email`, `get_friends_with_profiles`) in Supabase
+- RLS on `workouts` extended so accepted friends can read each other's workouts
+- Friends screen accessible from the avatar dropdown; search by email, send/accept/decline requests, remove friends
+- Friend cards expand inline to show their 5 latest workouts (lazy-loaded)
+- Pending-request badge on the Friends menu item
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)
 
 **Tables** (all RLS-enabled, scoped to `auth.uid()`):
-- `workouts` — program, program_name, date, duration, exercises (jsonb)
+- `workouts` — program, program_name, date, duration, exercises (jsonb); SELECT also allowed for accepted friends
 - `profiles` — id (= user id), name, birthdate, gender, height, current_weight, goal_weight, weekly_goal, avatar_url, program_exercises (jsonb: per-program custom exercise lists)
 - `weight_logs` — user_id, weight, date
+- `friendships` — requester_id, addressee_id, status (pending/accepted); UNIQUE on (requester_id, addressee_id)
 
 **Storage:**
 - `avatars` bucket (public read; insert/update restricted to a user's own `{user_id}/` folder)
 
 **Functions:**
 - `delete_user()` — `security definer`, deletes the calling user's `auth.users` row (cascades to all tables)
+- `are_friends(user_a, user_b)` — `security definer`, returns bool; used by workouts RLS policy
+- `find_user_by_email(search_email)` — `security definer`, returns (user_id, display_name, avatar_url); used for friend search
+- `get_friends_with_profiles()` — `security definer`, returns all friendships for the current user joined with profile data
 
 ---
 
@@ -69,13 +80,15 @@ Running record of what's been built and what's next. Update this at the end of e
 - **Web-only partial options:** schedule a `Notification` via the service worker (supports a vibration pattern on Android), and pre-load/play an audio element on completion while foregrounded. Cross-app reliability on iOS is poor.
 - **Robust solution:** ties to the native-app path (Capacitor) — local notifications + background audio can fire while the user is in another app.
 
-### Social — friends and sharing
-Add friends and view their workouts.
-- `friendships` table in Supabase with `user_id`, `friend_id`, status (pending/accepted)
-- RLS policy allowing users to read a friend's workouts once the friendship is accepted
-- UI: search by email, send/accept/decline friend requests
-- New "Friends" view listing friends' latest workouts (read-only)
-- Optional: toast when a friend saves a workout (Supabase Realtime subscription)
+### Social — friends and sharing ✓ Done
+- `friendships` table with `requester_id`, `addressee_id`, `status` (pending/accepted), RLS-secured
+- `are_friends()` and `find_user_by_email()` and `get_friends_with_profiles()` security-definer functions
+- RLS policy on `workouts` allowing accepted friends to read each other's workouts
+- Friends accessible via avatar dropdown (Profile · Friends · Settings · Log out)
+- Search by email, send/accept/decline requests, remove friends
+- Friend cards expand to show their 5 most recent workouts (lazy-loaded)
+- Pending-request badge on the Friends menu item
+- **Remaining optional:** real-time toast when a friend saves a workout (Supabase Realtime)
 
 ### Units toggle (kg/lbs, cm/in)
 Deferred from the Settings work. Let users switch measurement system; store the preference and convert display values.
