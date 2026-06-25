@@ -1815,6 +1815,12 @@ body {
     display: flex;
     gap: 10px;
     margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.friends-search-row .btn {
+    min-width: unset;
+    flex-shrink: 0;
 }
 
 .friends-search-row input {
