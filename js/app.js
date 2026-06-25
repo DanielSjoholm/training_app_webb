@@ -959,11 +959,8 @@ export class TrainingApp {
         }
 
         const exerciseData = this.workouts
-            .filter(workout => workout.exercises.some(ex => ex.name === exerciseName))
-            .map(workout => ({
-                date: new Date(workout.date),
-                sets: workout.exercises.find(ex => ex.name === exerciseName).sets
-            }))
+            .filter(w => w.exercises.some(ex => ex.name === exerciseName))
+            .map(w => ({ date: new Date(w.date), sets: w.exercises.find(ex => ex.name === exerciseName).sets }))
             .sort((a, b) => a.date - b.date);
 
         if (exerciseData.length === 0) {
@@ -976,30 +973,33 @@ export class TrainingApp {
             return;
         }
 
-        let bestWeight = 0;
-        exerciseData.forEach(workout => {
-            workout.sets.forEach(set => {
-                const weight = parseFloat(set.weight);
-                if (weight > bestWeight) bestWeight = weight;
+        let bestWeight = 0, bestReps = 0;
+        exerciseData.forEach(w => {
+            w.sets.forEach(s => {
+                const wt = parseFloat(s.weight) || 0;
+                const r = parseInt(s.reps) || 0;
+                if (wt > bestWeight || (wt === bestWeight && r > bestReps)) {
+                    bestWeight = wt;
+                    bestReps = r;
+                }
             });
         });
 
-        const firstWorkout = exerciseData[0];
-        const lastWorkout = exerciseData[exerciseData.length - 1];
-        const improvement = bestWeight - Math.max(...firstWorkout.sets.map(set => parseFloat(set.weight)));
+        const firstMaxW = Math.max(...exerciseData[0].sets.map(s => parseFloat(s.weight) || 0));
+        const improvement = bestWeight - firstMaxW;
 
         chartContainer.innerHTML = `
             <div class="progress-container">
                 <div class="progress-header">
-                    <h3 class="exercise-title">${exerciseName}</h3>
+                    <h3 class="exercise-title">${this.escapeHtml(exerciseName)}</h3>
                     <div class="progress-stats">
                         <div class="stat-item">
                             <span class="stat-label">Workouts</span>
                             <span class="stat-value">${exerciseData.length}</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">Best Weight</span>
-                            <span class="stat-value">${bestWeight}kg</span>
+                            <span class="stat-label">Best Set</span>
+                            <span class="stat-value">${bestWeight}kg × ${bestReps}</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">Improvement</span>
@@ -1007,55 +1007,99 @@ export class TrainingApp {
                         </div>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <div class="chart-bars">
-                        ${exerciseData.map((workout, index) => {
-                            const maxWeight = Math.max(...workout.sets.map(set => parseFloat(set.weight)));
-                            const height = bestWeight > 0 ? (maxWeight / bestWeight) * 100 : 0;
-                            const dateStr = workout.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                            const setsInfo = workout.sets.map(set => `${set.weight}kg × ${set.reps}`).join(', ');
-                            return `
-                                <div class="chart-bar-container" data-workout="${index}">
-                                    <div class="chart-bar" style="height: ${height}%">
-                                        <div class="bar-value">${maxWeight}kg</div>
-                                    </div>
-                                    <div class="bar-date">${dateStr}</div>
-                                    <div class="bar-details"><div class="bar-sets">${setsInfo}</div></div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-                <div class="progress-summary">
-                    <div class="summary-item">
-                        <span class="summary-label">First Workout:</span>
-                        <span class="summary-value">${firstWorkout.date.toLocaleDateString()}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Last Workout:</span>
-                        <span class="summary-value">${lastWorkout.date.toLocaleDateString()}</span>
-                    </div>
+                <div class="line-chart-wrap"></div>
+                <div class="lc-tooltip" id="lc-tooltip" hidden>
+                    <span class="lc-tooltip-date" id="lc-tooltip-date"></span>
+                    <span class="lc-tooltip-sets" id="lc-tooltip-sets"></span>
                 </div>
             </div>
         `;
 
-        this.addProgressChartInteractions();
+        chartContainer.querySelector('.line-chart-wrap').appendChild(this.buildLineChart(exerciseData));
+        this.setupLineChartDots();
     }
 
-    addProgressChartInteractions() {
-        document.querySelectorAll('.chart-bar-container').forEach(container => {
-            container.addEventListener('click', () => {
-                const details = container.querySelector('.bar-details');
-                const isVisible = details.style.display === 'block';
-                document.querySelectorAll('.bar-details').forEach(d => d.style.display = 'none');
-                document.querySelectorAll('.chart-bar-container').forEach(c => c.classList.remove('active'));
-                if (!isVisible) {
-                    details.style.display = 'block';
-                    container.classList.add('active');
-                }
+    buildLineChart(data) {
+        const W = 300, H = 120;
+        const PT = 15, PR = 10, PB = 35, PL = 44;
+        const plotW = W - PL - PR;
+        const plotH = H - PT - PB;
+        const n = data.length;
+
+        const points = data.map(w => {
+            let maxW = 0, maxR = 0;
+            w.sets.forEach(s => {
+                const wt = parseFloat(s.weight) || 0;
+                const r = parseInt(s.reps) || 0;
+                if (wt > maxW || (wt === maxW && r > maxR)) { maxW = wt; maxR = r; }
             });
-            container.addEventListener('touchstart', () => container.classList.add('touching'));
-            container.addEventListener('touchend', () => container.classList.remove('touching'));
+            return {
+                date: w.date,
+                weight: maxW,
+                reps: maxR,
+                setsStr: w.sets.map(s => `${s.weight}kg × ${s.reps}`).join(', ')
+            };
+        });
+
+        const weights = points.map(p => p.weight);
+        const yMin = Math.min(...weights);
+        const yMax = Math.max(...weights);
+        const yPad = (yMax - yMin) * 0.2 || 5;
+        const yLo = yMin - yPad;
+        const yHi = yMax + yPad;
+
+        const cx = i => PL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+        const cy = w => PT + (1 - (w - yLo) / (yHi - yLo)) * plotH;
+
+        const polyPts = points.map((p, i) => `${cx(i).toFixed(1)},${cy(p.weight).toFixed(1)}`).join(' ');
+
+        const gridY = yMin === yMax ? [yMax] : [yMax, yMin];
+        const gridLines = gridY.map(v =>
+            `<line class="lc-grid" x1="${PL}" y1="${cy(v).toFixed(1)}" x2="${W - PR}" y2="${cy(v).toFixed(1)}"/>`
+        ).join('');
+
+        const yLabels = gridY.map(v =>
+            `<text class="lc-ylabel" x="${PL - 6}" y="${(cy(v) + 4).toFixed(1)}" text-anchor="end">${v}kg</text>`
+        ).join('');
+
+        const circles = points.map((p, i) =>
+            `<circle class="lc-dot" cx="${cx(i).toFixed(1)}" cy="${cy(p.weight).toFixed(1)}" r="5"
+                data-date="${p.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}"
+                data-sets="${p.setsStr}"/>`
+        ).join('');
+
+        const dateLabels = points.map((p, i) => {
+            const label = p.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return `<text class="lc-date" x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle">${label}</text>`;
+        }).join('');
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'line-chart-svg');
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        svg.innerHTML = `${gridLines}${yLabels}
+            <polyline class="lc-line" points="${polyPts}" fill="none"/>
+            ${circles}${dateLabels}`;
+        return svg;
+    }
+
+    setupLineChartDots() {
+        const tooltip = document.getElementById('lc-tooltip');
+        const tooltipDate = document.getElementById('lc-tooltip-date');
+        const tooltipSets = document.getElementById('lc-tooltip-sets');
+
+        document.querySelectorAll('.lc-dot').forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                const isActive = dot.classList.contains('active');
+                document.querySelectorAll('.lc-dot').forEach(d => d.classList.remove('active'));
+                if (isActive) {
+                    tooltip.setAttribute('hidden', '');
+                    return;
+                }
+                dot.classList.add('active');
+                tooltipDate.textContent = dot.dataset.date;
+                tooltipSets.textContent = dot.dataset.sets;
+                tooltip.removeAttribute('hidden');
+            });
         });
     }
 
