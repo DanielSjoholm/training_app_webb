@@ -1,5 +1,7 @@
 // Master exercise catalog. Each exercise has a name, the muscle groups it targets,
-// and optionally a list of equipment/attachment variants.
+// and optionally a list of equipment/attachment variants. An exercise may also carry
+// subVariants — a second choice asked after the variant (e.g. attachment then direction),
+// producing a name like "Cable Curl (Handle, Front)".
 export const exerciseCatalog = [
     // Chest
     { name: 'Bench Press', groups: ['chest'] },
@@ -26,8 +28,8 @@ export const exerciseCatalog = [
     { name: 'Barbell Curl', groups: ['biceps'] },
     { name: 'EZ-Bar Curl', groups: ['biceps'] },
     { name: 'Dumbbell Curl', groups: ['biceps'] },
-    { name: 'Hammer Curl', groups: ['biceps'] },
-    { name: 'Cable Curl', groups: ['biceps'], variants: ['Bar', 'Rope', 'Handle'] },
+    { name: 'Hammer Curl', groups: ['biceps'], variants: ['Dumbbell', 'Cable'] },
+    { name: 'Cable Curl', groups: ['biceps'], variants: ['Bar', 'Rope', 'Handle'], subVariants: ['Front', 'Back'] },
     { name: 'Preacher Curl', groups: ['biceps'] },
     { name: 'Concentration Curl', groups: ['biceps'] },
     { name: 'Incline Dumbbell Curl', groups: ['biceps'] },
@@ -51,6 +53,7 @@ export const exerciseCatalog = [
     { name: 'Barbell Row', groups: ['back'] },
     { name: 'Dumbbell Row', groups: ['back'] },
     { name: 'T-Bar Row', groups: ['back'] },
+    { name: 'Chest Supported T-Bar Row', groups: ['back'] },
     { name: 'Straight-Arm Pulldown', groups: ['back'] },
     { name: 'Deadlift', groups: ['back', 'legs'] },
     { name: 'Hyperextension', groups: ['back'] },

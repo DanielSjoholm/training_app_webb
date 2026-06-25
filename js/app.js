@@ -750,7 +750,7 @@ export class TrainingApp {
                 <div class="picker-list">
                     ${candidates.length
                         ? candidates.map(ex => `
-                            <button class="picker-item" data-name="${this.escapeHtml(ex.name)}"${ex.variants ? ` data-variants="${this.escapeHtml(ex.variants.join('|'))}"` : ''}>
+                            <button class="picker-item" data-name="${this.escapeHtml(ex.name)}"${ex.variants ? ` data-variants="${this.escapeHtml(ex.variants.join('|'))}"` : ''}${ex.subVariants ? ` data-subvariants="${this.escapeHtml(ex.subVariants.join('|'))}"` : ''}>
                                 <span>${this.escapeHtml(ex.name)}</span>
                                 ${ex.variants ? '<span class="picker-chevron">›</span>' : ''}
                             </button>
@@ -777,8 +777,9 @@ export class TrainingApp {
             btn.addEventListener('click', () => {
                 const name = btn.dataset.name;
                 const variants = btn.dataset.variants ? btn.dataset.variants.split('|') : null;
+                const subVariants = btn.dataset.subvariants ? btn.dataset.subvariants.split('|') : null;
                 if (variants) {
-                    this.showVariantStep(overlay, name, variants, close);
+                    this.showVariantStep(overlay, name, variants, subVariants, close);
                 } else {
                     this.addExerciseToWorkout(name);
                     close();
@@ -787,17 +788,39 @@ export class TrainingApp {
         });
     }
 
-    showVariantStep(overlay, name, variants, close) {
+    showVariantStep(overlay, name, variants, subVariants, close) {
         const modal = overlay.querySelector('.modal');
         modal.querySelector('.modal-title').textContent = name;
         modal.querySelector('.picker-list').innerHTML = variants.map(v => `
             <button class="picker-item picker-variant" data-variant="${this.escapeHtml(v)}">
                 <span>${this.escapeHtml(v)}</span>
+                ${subVariants ? '<span class="picker-chevron">›</span>' : ''}
             </button>
         `).join('');
         modal.querySelectorAll('.picker-variant').forEach(btn => {
             btn.addEventListener('click', () => {
-                this.addExerciseToWorkout(`${name} (${btn.dataset.variant})`);
+                const variant = btn.dataset.variant;
+                if (subVariants) {
+                    this.showSubVariantStep(overlay, name, variant, subVariants, close);
+                } else {
+                    this.addExerciseToWorkout(`${name} (${variant})`);
+                    close();
+                }
+            });
+        });
+    }
+
+    showSubVariantStep(overlay, name, variant, subVariants, close) {
+        const modal = overlay.querySelector('.modal');
+        modal.querySelector('.modal-title').textContent = `${name} (${variant})`;
+        modal.querySelector('.picker-list').innerHTML = subVariants.map(v => `
+            <button class="picker-item picker-variant" data-subvariant="${this.escapeHtml(v)}">
+                <span>${this.escapeHtml(v)}</span>
+            </button>
+        `).join('');
+        modal.querySelectorAll('.picker-variant').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.addExerciseToWorkout(`${name} (${variant}, ${btn.dataset.subvariant})`);
                 close();
             });
         });
