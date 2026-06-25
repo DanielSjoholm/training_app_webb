@@ -1,3 +1,26 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #0a0a0b;
+}
+
+.bg-wrap {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.28);
+}
+
 /* CSS Variables for consistent theming */
 :root {
     /* Neutral charcoal/zinc palette */
@@ -67,17 +90,19 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--background-dark);
+    background: transparent;
     color: var(--text-primary);
     line-height: 1.6;
     overflow-x: hidden;
     color-scheme: dark;
 }
 
+
 /* App container */
 #app {
     min-height: 100vh;
     position: relative;
+    z-index: 1;
 }
 
 /* Screen management */
@@ -187,6 +212,12 @@ body {
     margin-bottom: 14px;
 }
 
+#main-menu .section-label {
+    font-size: 1.1rem;
+    text-align: center;
+    letter-spacing: 0.14em;
+}
+
 /* Auth screen */
 .auth-container {
     display: flex;
@@ -222,21 +253,23 @@ body {
 .auth-card {
     width: 100%;
     max-width: 400px;
-    background: var(--surface-dark);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 20px;
     padding: 32px;
-    border: 1px solid var(--border-color);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     box-shadow: var(--shadow);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .auth-tabs {
     display: flex;
     gap: 0;
     margin-bottom: 28px;
-    background: var(--background-dark);
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 12px;
     padding: 4px;
-    border: 1px solid var(--border-color);
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .auth-tab {
@@ -602,29 +635,32 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
     margin-bottom: 36px;
+    padding: 0 24px;
 }
 
 .program-btn {
-    background: var(--surface-dark);
-    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: var(--border-radius);
-    padding: 20px;
+    padding: 16px 20px;
     color: var(--text-primary);
     cursor: pointer;
     transition: var(--transition);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
-    min-height: 104px;
+    gap: 8px;
+    min-height: 88px;
     justify-content: space-between;
     text-align: left;
     position: relative;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .program-btn:hover {
-    border-color: var(--border-light);
-    background: var(--surface-elevated);
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.5);
     transform: translateY(-2px);
 }
 
