@@ -1788,6 +1788,79 @@ body {
     border-color: var(--border-light);
 }
 
+/* ─── Progress line chart ─────────────────────────────── */
+
+.line-chart-wrap {
+    margin: 20px 0 8px;
+    overflow: hidden;
+}
+
+.line-chart-svg {
+    width: 100%;
+    display: block;
+    overflow: visible;
+}
+
+.lc-grid {
+    stroke: var(--border-color);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+}
+
+.lc-line {
+    stroke: var(--text-primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.lc-dot {
+    fill: var(--surface-dark);
+    stroke: var(--text-primary);
+    stroke-width: 2;
+    cursor: pointer;
+    transition: fill 0.15s ease, r 0.15s ease;
+}
+
+.lc-dot:hover,
+.lc-dot.active {
+    fill: var(--text-primary);
+}
+
+.lc-ylabel {
+    font-size: 9px;
+    fill: var(--text-tertiary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.lc-date {
+    font-size: 8px;
+    fill: var(--text-tertiary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.lc-tooltip {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lc-tooltip-date {
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+}
+
+.lc-tooltip-sets {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
 /* ─── Friends ─────────────────────────────────────────── */
 
 .req-badge {
