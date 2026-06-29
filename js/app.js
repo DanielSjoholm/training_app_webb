@@ -82,7 +82,7 @@ export class TrainingApp {
             this.populateExerciseSelect();
         } catch {
             this.workouts = loadWorkouts();
-            this.showToast('Offline — visar cachad data', 'info');
+            this.showToast('Offline — showing cached data', 'info');
         }
     }
 
@@ -348,30 +348,76 @@ export class TrainingApp {
             return;
         }
 
-        const weights = logs.map(l => parseFloat(l.weight));
-        const max = Math.max(...weights);
-        const min = Math.min(...weights);
-        const range = max - min || 1;
+        const data = logs.map(l => ({ date: new Date(l.date), weight: parseFloat(l.weight) }));
 
         container.innerHTML = `
-            <div class="chart-container">
-                <div class="chart-bars">
-                    ${logs.map(log => {
-                        const w = parseFloat(log.weight);
-                        const height = 20 + ((w - min) / range) * 80;
-                        const dateStr = new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                        return `
-                            <div class="chart-bar-container">
-                                <div class="chart-bar" style="height: ${height}%">
-                                    <div class="bar-value">${w}kg</div>
-                                </div>
-                                <div class="bar-date">${dateStr}</div>
-                            </div>
-                        `;
-                    }).join('')}
+            <div class="progress-container">
+                <div class="line-chart-wrap"></div>
+                <div class="lc-tooltip" id="weight-lc-tooltip" hidden>
+                    <span class="lc-tooltip-date" id="weight-lc-tooltip-date"></span>
+                    <span class="lc-tooltip-sets" id="weight-lc-tooltip-weight"></span>
                 </div>
             </div>
         `;
+
+        const W = 300, H = 120;
+        const PT = 15, PR = 10, PB = 35, PL = 44;
+        const plotW = W - PL - PR;
+        const plotH = H - PT - PB;
+        const n = data.length;
+
+        const weights = data.map(d => d.weight);
+        const yMin = Math.min(...weights);
+        const yMax = Math.max(...weights);
+        const yPad = (yMax - yMin) * 0.2 || 1;
+        const yLo = yMin - yPad;
+        const yHi = yMax + yPad;
+
+        const cx = i => PL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+        const cy = w => PT + (1 - (w - yLo) / (yHi - yLo)) * plotH;
+
+        const polyPts = data.map((d, i) => `${cx(i).toFixed(1)},${cy(d.weight).toFixed(1)}`).join(' ');
+
+        const gridY = yMin === yMax ? [yMax] : [yMax, yMin];
+        const gridLines = gridY.map(v =>
+            `<line class="lc-grid" x1="${PL}" y1="${cy(v).toFixed(1)}" x2="${W - PR}" y2="${cy(v).toFixed(1)}"/>`
+        ).join('');
+        const yLabels = gridY.map(v =>
+            `<text class="lc-ylabel" x="${PL - 6}" y="${(cy(v) + 4).toFixed(1)}" text-anchor="end">${v}kg</text>`
+        ).join('');
+        const circles = data.map((d, i) =>
+            `<circle class="lc-dot" cx="${cx(i).toFixed(1)}" cy="${cy(d.weight).toFixed(1)}" r="5"
+                data-date="${d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}"
+                data-weight="${d.weight}kg"/>`
+        ).join('');
+        const dateLabels = data.map((d, i) => {
+            const label = d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return `<text class="lc-date" x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle">${label}</text>`;
+        }).join('');
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'line-chart-svg');
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        svg.innerHTML = `${gridLines}${yLabels}
+            <polyline class="lc-line" points="${polyPts}" fill="none"/>
+            ${circles}${dateLabels}`;
+
+        container.querySelector('.line-chart-wrap').appendChild(svg);
+
+        const tooltip = document.getElementById('weight-lc-tooltip');
+        const tooltipDate = document.getElementById('weight-lc-tooltip-date');
+        const tooltipWeight = document.getElementById('weight-lc-tooltip-weight');
+        container.querySelectorAll('.lc-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                const isActive = dot.classList.contains('active');
+                container.querySelectorAll('.lc-dot').forEach(d => d.classList.remove('active'));
+                if (isActive) { tooltip.setAttribute('hidden', ''); return; }
+                dot.classList.add('active');
+                tooltipDate.textContent = dot.dataset.date;
+                tooltipWeight.textContent = dot.dataset.weight;
+                tooltip.removeAttribute('hidden');
+            });
+        });
     }
 
     // --- Settings ---
@@ -509,7 +555,7 @@ export class TrainingApp {
         window.addEventListener('beforeunload', (e) => {
             if (this.isWorkoutActive) {
                 e.preventDefault();
-                e.returnValue = 'Du har en aktiv träning som inte är sparad. Är du säker på att du vill lämna sidan?';
+                e.returnValue = 'You have an active workout that hasn\'t been saved. Are you sure you want to leave?';
                 return e.returnValue;
             }
         });
@@ -590,6 +636,21 @@ export class TrainingApp {
         document.getElementById('program-filter').addEventListener('change', () => this.filterHistory());
         document.getElementById('exercise-select').addEventListener('change', () => this.updateProgressChart());
 
+        // Event delegation for dynamically created workout elements
+        document.getElementById('exercises-container').addEventListener('click', (e) => {
+            const addBtn = e.target.closest('.add-set-btn');
+            const removeBtn = e.target.closest('.btn-remove-set');
+            if (addBtn) this.addSet(addBtn.dataset.exerciseId);
+            else if (removeBtn) this.removeSet(removeBtn, removeBtn.dataset.exerciseId);
+        });
+        document.getElementById('exercises-container').addEventListener('input', (e) => {
+            if (e.target.matches('.weight-input, .reps-input')) this.saveFormData();
+        });
+        document.getElementById('history-list').addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('.btn-delete-workout');
+            if (deleteBtn) this.deleteWorkout(deleteBtn.dataset.workoutId);
+        });
+
         document.getElementById('auth-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleAuthSubmit();
@@ -657,7 +718,6 @@ export class TrainingApp {
         });
 
         container.appendChild(this.buildAddExerciseButton());
-        this.addFormDataListeners();
     }
 
     buildExerciseCard(exercise) {
@@ -680,7 +740,7 @@ export class TrainingApp {
                 <div class="sets-list" id="sets-list-${id}"></div>
             </div>
             <div class="exercise-actions">
-                <button class="btn btn-secondary add-set-btn" onclick="app.addSet('${id}')">+ Add Set</button>
+                <button class="btn btn-secondary add-set-btn" data-exercise-id="${id}">+ Add Set</button>
             </div>
         `;
         entry.querySelector('.remove-exercise-btn').addEventListener('click', () => this.removeExercise(exercise));
@@ -721,7 +781,6 @@ export class TrainingApp {
         const card = this.buildExerciseCard(exercise);
         document.getElementById('exercises-container').insertBefore(card, addWrap);
         this.addSet(this.exId(exercise));
-        this.addFormDataListeners();
         this.saveFormData();
         this.persistProgramExercises();
     }
@@ -843,7 +902,7 @@ export class TrainingApp {
                     data-exercise="${exerciseId}" data-set="${setNumber}" data-field="reps">
             </div>
             <div class="set-actions">
-                <button class="btn-remove-set" onclick="app.removeSet(this, '${exerciseId}')" title="Remove set">✕</button>
+                <button class="btn-remove-set" data-exercise-id="${exerciseId}" title="Remove set">✕</button>
             </div>
         `;
 
@@ -894,7 +953,7 @@ export class TrainingApp {
                     <span class="workout-program">${workout.programName}</span>
                     <div class="workout-actions">
                         <span class="workout-date">${date}</span>
-                        <button class="btn-delete-workout" onclick="app.deleteWorkout('${workout.id}')" title="Delete workout">×</button>
+                        <button class="btn-delete-workout" data-workout-id="${workout.id}" title="Delete workout">×</button>
                     </div>
                 </div>
                 <div class="workout-duration">
@@ -1214,7 +1273,7 @@ export class TrainingApp {
 
         const progress = (this.restDuration / (this.restInterval * 1000)) * 100;
         const degrees = Math.min(progress * 3.6, 360);
-        const color = progress >= 0.8 ? 'var(--success-color)' : progress >= 0.6 ? 'var(--accent-color)' : 'var(--primary-color)';
+        const color = progress >= 80 ? 'var(--success-color)' : progress >= 60 ? 'var(--accent-color)' : 'var(--primary-color)';
         progressElement.style.background = `conic-gradient(${color} ${degrees}deg, transparent ${degrees}deg)`;
     }
 
@@ -1253,18 +1312,15 @@ export class TrainingApp {
 
     extendRest() {
         this.restInterval += 30;
-        document.getElementById('rest-interval-select').value = this.restInterval;
+        const select = document.getElementById('rest-interval-select');
+        if ([...select.options].some(o => parseInt(o.value) === this.restInterval)) {
+            select.value = this.restInterval;
+        }
         this.updateRestTimerDisplay();
-        this.showToast('Rest extended by 30 seconds', 'info');
+        this.showToast('+30s added', 'info');
     }
 
     // --- Form data persistence ---
-
-    addFormDataListeners() {
-        document.querySelectorAll('.weight-input, .reps-input').forEach(input => {
-            input.addEventListener('input', () => this.saveFormData());
-        });
-    }
 
     saveFormData() {
         if (!this.isWorkoutActive || !this.currentProgram) return;
@@ -1315,14 +1371,12 @@ export class TrainingApp {
                             data-exercise="${exerciseId}" data-set="${setNumber}" data-field="reps" value="${setData.reps}">
                     </div>
                     <div class="set-actions">
-                        <button class="btn-remove-set" onclick="app.removeSet(this, '${exerciseId}')" title="Remove set">✕</button>
+                        <button class="btn-remove-set" data-exercise-id="${exerciseId}" title="Remove set">✕</button>
                     </div>
                 `;
                 setsList.appendChild(setRow);
             });
         });
-
-        this.addFormDataListeners();
     }
 
     // --- Workout state persistence ---
@@ -1361,7 +1415,7 @@ export class TrainingApp {
         document.getElementById('workout-title').textContent = program.name;
         this.renderWorkoutForm(exercises);
         this.initializeRestTimer();
-        setTimeout(() => this.loadFormData(), 100);
+        this.loadFormData();
         this.renderLastWorkout(this.getLastWorkout(this.currentProgram));
         this.showScreen('workout-screen');
         this.startWorkoutTimer();
@@ -1488,7 +1542,7 @@ export class TrainingApp {
             workoutData.id = id;
             this.showToast('Workout saved', 'success');
         } catch {
-            this.showToast('Sparad lokalt — ingen internetanslutning', 'info');
+            this.showToast('Saved locally — no internet connection', 'info');
         }
 
         this.workouts.unshift(workoutData);
