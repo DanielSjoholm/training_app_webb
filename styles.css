@@ -2060,7 +2060,18 @@ body {
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-primary);
+}
+
+.friend-result-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     flex: 1;
+}
+
+.friend-result-email {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
 }
 
 .friend-chevron {
