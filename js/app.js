@@ -9,7 +9,7 @@ import {
     saveProgramExercises
 } from './storage.js';
 import { signIn, signUp, signOut, getSession, onAuthStateChange, getUser, updatePassword, deleteAccount } from './auth.js';
-import { searchUserByEmail, sendFriendRequest, fetchFriendsWithProfiles, acceptFriendRequest, declineOrRemoveFriend, fetchFriendWorkouts } from './friends.js';
+import { searchUserByEmail, searchUsersByName, sendFriendRequest, fetchFriendsWithProfiles, acceptFriendRequest, declineOrRemoveFriend, fetchFriendWorkouts } from './friends.js';
 
 export class TrainingApp {
     constructor() {
@@ -1745,41 +1745,66 @@ export class TrainingApp {
     async searchFriend() {
         const input = document.getElementById('friend-search-input');
         const result = document.getElementById('friend-search-result');
-        const email = input.value.trim();
-        if (!email) return;
+        const query = input.value.trim();
+        if (!query) return;
 
         result.innerHTML = '<p class="friend-search-status">Searching...</p>';
 
         try {
-            const user = await searchUserByEmail(email);
-            if (!user) {
-                result.innerHTML = '<p class="friend-search-status">No user found with that email.</p>';
-                return;
-            }
-            result.innerHTML = `
-                <div class="friend-card friend-result-card">
-                    <div class="friend-card-info">
-                        ${this.friendAvatarHtml(user.avatar_url)}
-                        <span class="friend-name">${this.escapeHtml(user.display_name || 'Unknown')}</span>
-                    </div>
-                    <div class="friend-card-actions">
-                        <button class="btn btn-primary btn-sm" id="send-request-btn">Add friend</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('send-request-btn').addEventListener('click', async () => {
-                try {
-                    await sendFriendRequest(user.user_id);
-                    result.innerHTML = '<p class="friend-search-status">Friend request sent!</p>';
-                    input.value = '';
-                } catch (e) {
-                    const msg = e.message?.includes('duplicate') ? 'Request already sent.' : 'Could not send request.';
-                    result.innerHTML = `<p class="friend-search-status">${msg}</p>`;
+            const isEmail = query.includes('@');
+            let users = [];
+
+            if (isEmail) {
+                const user = await searchUserByEmail(query);
+                if (!user) {
+                    result.innerHTML = '<p class="friend-search-status">No user found with that email.</p>';
+                    return;
                 }
+                users = [user];
+            } else {
+                users = await searchUsersByName(query);
+                if (users.length === 0) {
+                    result.innerHTML = '<p class="friend-search-status">No users found with that name.</p>';
+                    return;
+                }
+            }
+
+            result.innerHTML = users.map(u => this.buildFriendResultCard(u, !isEmail)).join('');
+
+            result.querySelectorAll('.send-request-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const userId = btn.closest('.friend-result-card').dataset.userId;
+                    try {
+                        await sendFriendRequest(userId);
+                        btn.textContent = 'Sent ✓';
+                        btn.disabled = true;
+                        input.value = '';
+                    } catch (e) {
+                        btn.textContent = e.message?.includes('duplicate') ? 'Already sent' : 'Could not send';
+                        btn.disabled = true;
+                    }
+                });
             });
         } catch {
             result.innerHTML = '<p class="friend-search-status">Search failed. Try again.</p>';
         }
+    }
+
+    buildFriendResultCard(user, showEmail) {
+        return `
+            <div class="friend-card friend-result-card" data-user-id="${user.user_id}">
+                <div class="friend-card-info">
+                    ${this.friendAvatarHtml(user.avatar_url)}
+                    <div class="friend-result-meta">
+                        <span class="friend-name">${this.escapeHtml(user.display_name || 'Unknown')}</span>
+                        ${showEmail && user.email ? `<span class="friend-result-email">${this.escapeHtml(user.email)}</span>` : ''}
+                    </div>
+                </div>
+                <div class="friend-card-actions">
+                    <button class="btn btn-primary btn-sm send-request-btn">Add friend</button>
+                </div>
+            </div>
+        `;
     }
 
     showConfirm({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', danger = false }) {

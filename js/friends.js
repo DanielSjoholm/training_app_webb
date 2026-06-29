@@ -6,6 +6,12 @@ export async function searchUserByEmail(email) {
     return data?.[0] ?? null;
 }
 
+export async function searchUsersByName(name) {
+    const { data, error } = await supabase.rpc('find_users_by_name', { search_name: name });
+    if (error) throw error;
+    return data ?? [];
+}
+
 export async function sendFriendRequest(addresseeId) {
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase
