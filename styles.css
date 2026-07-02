@@ -810,15 +810,94 @@ body {
 .exercise-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 16px;
 }
 
 .exercise-name {
+    flex: 1;
+    min-width: 0;
     font-weight: 600;
     color: var(--text-primary);
     font-size: 1.1rem;
+}
+
+.exercise-entry.is-superset {
+    border-color: var(--primary-color);
+}
+
+.superset-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.superset-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.superset-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--text-primary);
+}
+
+.superset-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 160px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    background: var(--surface-hover);
+    border: 1px solid var(--primary-color);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.superset-badge-icon {
+    flex-shrink: 0;
+    color: var(--text-primary);
+}
+
+.superset-badge-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.unlink-superset-btn {
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0;
+    line-height: 1;
+}
+
+.unlink-superset-btn:hover {
+    color: var(--error-color);
+}
+
+.picker-subheading {
+    padding: 6px 2px 2px;
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .remove-exercise-btn {

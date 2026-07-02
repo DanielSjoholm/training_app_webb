@@ -28,6 +28,7 @@ export class TrainingApp {
         this.profile = null;
         this.user = null;
         this.workoutExercises = [];
+        this.supersetPairs = {};
 
         this.init();
     }
@@ -728,6 +729,7 @@ export class TrainingApp {
         entry.innerHTML = `
             <div class="exercise-header">
                 <div class="exercise-name">${this.escapeHtml(exercise)}</div>
+                <span class="superset-control" data-exercise-id="${id}">${this.supersetControlHtml(exercise)}</span>
                 <button class="remove-exercise-btn" title="Remove exercise" aria-label="Remove exercise">✕</button>
             </div>
             <div class="sets-container" id="sets-${id}">
@@ -744,7 +746,67 @@ export class TrainingApp {
             </div>
         `;
         entry.querySelector('.remove-exercise-btn').addEventListener('click', () => this.removeExercise(exercise));
+        entry.classList.toggle('is-superset', !!this.supersetPairs[exercise]);
+        this.bindSupersetControl(entry, exercise);
         return entry;
+    }
+
+    // --- Supersets ---
+
+    supersetControlHtml(exercise) {
+        const partner = this.supersetPairs[exercise];
+        if (partner) {
+            return `
+                <span class="superset-badge" title="Superset with ${this.escapeHtml(partner)}">
+                    <span class="superset-badge-icon">⇄</span>
+                    <span class="superset-badge-name">${this.escapeHtml(partner)}</span>
+                    <button class="unlink-superset-btn" aria-label="Remove superset link">✕</button>
+                </span>
+            `;
+        }
+        return '<button class="superset-btn" title="Superset with another exercise" aria-label="Superset with another exercise">⇄</button>';
+    }
+
+    bindSupersetControl(entry, exercise) {
+        const control = entry.querySelector('.superset-control');
+        const unlinkBtn = control.querySelector('.unlink-superset-btn');
+        if (unlinkBtn) {
+            unlinkBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.unlinkSuperset(exercise);
+            });
+        } else {
+            control.querySelector('.superset-btn').addEventListener('click', () => this.openSupersetPicker(exercise));
+        }
+    }
+
+    refreshSupersetControl(exercise) {
+        const entry = document.querySelector(`.exercise-entry[data-exercise="${this.cssEscape(exercise)}"]`);
+        if (!entry) return;
+        entry.classList.toggle('is-superset', !!this.supersetPairs[exercise]);
+        const control = entry.querySelector('.superset-control');
+        control.innerHTML = this.supersetControlHtml(exercise);
+        this.bindSupersetControl(entry, exercise);
+    }
+
+    pairSuperset(a, b) {
+        if (a === b) return;
+        this.unlinkSuperset(a);
+        this.unlinkSuperset(b);
+        this.supersetPairs[a] = b;
+        this.supersetPairs[b] = a;
+        this.refreshSupersetControl(a);
+        this.refreshSupersetControl(b);
+        this.showToast(`Supersetting ${a} with ${b}`, 'success');
+    }
+
+    unlinkSuperset(exercise) {
+        const partner = this.supersetPairs[exercise];
+        if (!partner) return;
+        delete this.supersetPairs[exercise];
+        delete this.supersetPairs[partner];
+        this.refreshSupersetControl(exercise);
+        this.refreshSupersetControl(partner);
     }
 
     buildAddExerciseButton() {
@@ -760,6 +822,7 @@ export class TrainingApp {
             this.showToast('A workout needs at least one exercise', 'info');
             return;
         }
+        this.unlinkSuperset(exercise);
         this.workoutExercises = this.workoutExercises.filter(e => e !== exercise);
         const card = document.querySelector(`.exercise-entry[data-exercise="${this.cssEscape(exercise)}"]`);
         if (card) card.remove();
@@ -800,21 +863,49 @@ export class TrainingApp {
     openExercisePicker() {
         const candidates = exercisesForProgram(this.currentProgram)
             .filter(ex => !this.workoutExercises.includes(ex.name));
+        this.showPickerModal('Add exercise', [], candidates, (finalName) => this.addExerciseToWorkout(finalName));
+    }
 
+    openSupersetPicker(exercise) {
+        const pairedNames = new Set(Object.keys(this.supersetPairs));
+        const existing = this.workoutExercises.filter(e => e !== exercise && !pairedNames.has(e));
+        const candidates = exercisesForProgram(this.currentProgram)
+            .filter(ex => !this.workoutExercises.includes(ex.name));
+        this.showPickerModal(`Superset with ${exercise}`, existing, candidates, (finalName) => {
+            if (!this.workoutExercises.includes(finalName)) this.addExerciseToWorkout(finalName);
+            this.pairSuperset(exercise, finalName);
+        });
+    }
+
+    // Renders the add-exercise picker. `existingNames` (already in this workout, no
+    // variant step) are listed above `catalogCandidates` (go through variant/subVariant
+    // steps as usual). `onResolve(finalName)` runs once a concrete exercise name is picked.
+    showPickerModal(title, existingNames, catalogCandidates, onResolve) {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay';
+        const existingHtml = existingNames.length ? `
+            <div class="picker-subheading">In this workout</div>
+            ${existingNames.map(name => `
+                <button class="picker-item" data-existing="${this.escapeHtml(name)}">
+                    <span>${this.escapeHtml(name)}</span>
+                </button>
+            `).join('')}
+        ` : '';
+        const addNewHeading = existingNames.length && catalogCandidates.length
+            ? '<div class="picker-subheading">Add new</div>' : '';
         overlay.innerHTML = `
             <div class="modal picker-modal" role="dialog" aria-modal="true">
-                <h3 class="modal-title">Add exercise</h3>
+                <h3 class="modal-title">${this.escapeHtml(title)}</h3>
                 <div class="picker-list">
-                    ${candidates.length
-                        ? candidates.map(ex => `
+                    ${existingHtml}${addNewHeading}
+                    ${catalogCandidates.length
+                        ? catalogCandidates.map(ex => `
                             <button class="picker-item" data-name="${this.escapeHtml(ex.name)}"${ex.variants ? ` data-variants="${this.escapeHtml(ex.variants.join('|'))}"` : ''}${ex.subVariants ? ` data-subvariants="${this.escapeHtml(ex.subVariants.join('|'))}"` : ''}>
                                 <span>${this.escapeHtml(ex.name)}</span>
                                 ${ex.variants ? '<span class="picker-chevron">›</span>' : ''}
                             </button>
                         `).join('')
-                        : '<p class="picker-empty">No more exercises for this muscle group.</p>'}
+                        : (existingNames.length ? '' : '<p class="picker-empty">No more exercises for this muscle group.</p>')}
                 </div>
                 <div class="modal-actions">
                     <button class="btn modal-cancel">Close</button>
@@ -832,22 +923,29 @@ export class TrainingApp {
         overlay.querySelector('.modal-cancel').addEventListener('click', close);
         overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 
-        overlay.querySelectorAll('.picker-item').forEach(btn => {
+        overlay.querySelectorAll('.picker-item[data-existing]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                onResolve(btn.dataset.existing);
+                close();
+            });
+        });
+
+        overlay.querySelectorAll('.picker-item[data-name]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const name = btn.dataset.name;
                 const variants = btn.dataset.variants ? btn.dataset.variants.split('|') : null;
                 const subVariants = btn.dataset.subvariants ? btn.dataset.subvariants.split('|') : null;
                 if (variants) {
-                    this.showVariantStep(overlay, name, variants, subVariants, close);
+                    this.showVariantStep(overlay, name, variants, subVariants, close, onResolve);
                 } else {
-                    this.addExerciseToWorkout(name);
+                    onResolve(name);
                     close();
                 }
             });
         });
     }
 
-    showVariantStep(overlay, name, variants, subVariants, close) {
+    showVariantStep(overlay, name, variants, subVariants, close, onResolve) {
         const modal = overlay.querySelector('.modal');
         modal.querySelector('.modal-title').textContent = name;
         modal.querySelector('.picker-list').innerHTML = variants.map(v => `
@@ -860,16 +958,16 @@ export class TrainingApp {
             btn.addEventListener('click', () => {
                 const variant = btn.dataset.variant;
                 if (subVariants) {
-                    this.showSubVariantStep(overlay, name, variant, subVariants, close);
+                    this.showSubVariantStep(overlay, name, variant, subVariants, close, onResolve);
                 } else {
-                    this.addExerciseToWorkout(`${name} (${variant})`);
+                    onResolve(`${name} (${variant})`);
                     close();
                 }
             });
         });
     }
 
-    showSubVariantStep(overlay, name, variant, subVariants, close) {
+    showSubVariantStep(overlay, name, variant, subVariants, close, onResolve) {
         const modal = overlay.querySelector('.modal');
         modal.querySelector('.modal-title').textContent = `${name} (${variant})`;
         modal.querySelector('.picker-list').innerHTML = subVariants.map(v => `
@@ -879,7 +977,7 @@ export class TrainingApp {
         `).join('');
         modal.querySelectorAll('.picker-variant').forEach(btn => {
             btn.addEventListener('click', () => {
-                this.addExerciseToWorkout(`${name} (${variant}, ${btn.dataset.subvariant})`);
+                onResolve(`${name} (${variant}, ${btn.dataset.subvariant})`);
                 close();
             });
         });
@@ -1407,6 +1505,7 @@ export class TrainingApp {
         this.isWorkoutActive = true;
         this.workoutStartTime = this.workoutState.startTime;
         this.workoutDuration = this.workoutState.duration + (Date.now() - this.workoutState.timestamp);
+        this.supersetPairs = this.workoutState.supersetPairs || {};
 
         const program = programs[this.currentProgram];
         const exercises = Array.isArray(this.workoutState.exercises) && this.workoutState.exercises.length
@@ -1439,6 +1538,7 @@ export class TrainingApp {
                 saveWorkoutState({
                     program: this.currentProgram,
                     exercises: this.workoutExercises,
+                    supersetPairs: this.supersetPairs,
                     startTime: this.workoutStartTime,
                     duration: this.workoutDuration,
                     isActive: this.isWorkoutActive,
@@ -1467,6 +1567,7 @@ export class TrainingApp {
         this.isWorkoutActive = true;
         this.workoutStartTime = null;
         this.workoutDuration = 0;
+        this.supersetPairs = {};
 
         this.stopRestTimer();
         this.initializeRestTimer();
@@ -1484,6 +1585,7 @@ export class TrainingApp {
         saveWorkoutState({
             program: this.currentProgram,
             exercises: this.workoutExercises,
+            supersetPairs: this.supersetPairs,
             startTime: this.workoutStartTime,
             duration: this.workoutDuration,
             isActive: this.isWorkoutActive,
