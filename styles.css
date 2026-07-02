@@ -118,7 +118,6 @@ html, body {
 }
 
 :root[data-theme="light"] .workout-timer-container,
-:root[data-theme="light"] #last-workout-container,
 :root[data-theme="light"] .exercise-entry,
 :root[data-theme="light"] .rest-timer-container {
     background: rgba(255, 255, 255, 0.45);
@@ -611,72 +610,29 @@ body {
     font-family: 'Courier New', monospace;
 }
 
-/* Last workout styles */
-#last-workout-container {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: var(--border-radius);
-    padding: 20px;
-    margin-bottom: 24px;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border-left: 4px solid var(--accent-color);
-}
-
-.last-workout-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.last-workout-header h3 {
-    font-size: 1.1rem;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-.last-workout-duration {
-    font-size: 0.9rem;
-    color: var(--accent-color);
-    font-weight: 600;
-}
-
-.last-workout-exercises {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.last-exercise-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 8px 0;
-}
-
-.last-exercise-name {
-    font-weight: 500;
-    color: var(--text-primary);
-    min-width: 120px;
-}
-
-.last-exercise-sets {
+/* Per-exercise history (shown inside each exercise card) */
+.exercise-history {
     display: flex;
     flex-wrap: wrap;
+    align-items: baseline;
     gap: 8px;
-    text-align: right;
+    margin: -6px 0 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
 }
 
-.last-set-display {
+.exercise-history-label {
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.exercise-history-sets {
     color: var(--text-secondary);
-    font-size: 0.9rem;
-    background: var(--surface-dark);
-    padding: 4px 8px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
 }
 
 .no-last-workout {
@@ -1659,22 +1615,6 @@ body {
         flex-direction: column;
         gap: 8px;
         align-items: flex-end;
-    }
-    
-    .last-workout-header {
-        flex-direction: column;
-        gap: 8px;
-        align-items: flex-start;
-    }
-    
-    .last-exercise-item {
-        flex-direction: column;
-        gap: 8px;
-        align-items: flex-start;
-    }
-    
-    .last-exercise-sets {
-        text-align: left;
     }
     
     .btn-delete-workout {
