@@ -97,6 +97,16 @@ html, body {
     border-color: rgba(0, 0, 0, 0.3);
 }
 
+:root[data-theme="light"] .nav-btn {
+    background: rgba(255, 255, 255, 0.45);
+    border-color: rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="light"] .nav-btn:hover {
+    background: rgba(255, 255, 255, 0.65);
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
 :root[data-theme="light"] .settings-section {
     background: rgba(255, 255, 255, 0.45);
     border-color: rgba(0, 0, 0, 0.18);
@@ -705,8 +715,8 @@ body {
 }
 
 .nav-btn {
-    background: var(--surface-dark);
-    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: var(--border-radius);
     padding: 16px;
     color: var(--text-primary);
@@ -714,11 +724,13 @@ body {
     transition: var(--transition);
     font-size: 0.9rem;
     font-weight: 600;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .nav-btn:hover {
-    background: var(--surface-elevated);
-    border-color: var(--border-light);
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.5);
 }
 
 /* Back button */
