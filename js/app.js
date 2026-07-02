@@ -514,40 +514,27 @@ export class TrainingApp {
         }
     }
 
-    getLastWorkout(programId) {
-        const programWorkouts = this.workouts
-            .filter(workout => workout.program === programId)
-            .sort((a, b) => new Date(b.date) - new Date(a.date));
-        return programWorkouts.length > 0 ? programWorkouts[0] : null;
+    // Most recent time this exact exercise name was logged, in any program —
+    // so e.g. Bench Press history shows up whether it was last done under
+    // Chest & Triceps or Chest alone.
+    getLastExerciseEntry(exercise) {
+        const sorted = [...this.workouts].sort((a, b) => new Date(b.date) - new Date(a.date));
+        for (const workout of sorted) {
+            const match = workout.exercises.find(ex => ex.name === exercise && ex.sets?.length);
+            if (match) return { date: workout.date, sets: match.sets };
+        }
+        return null;
     }
 
-    renderLastWorkout(lastWorkout) {
-        const container = document.getElementById('last-workout-container');
-        if (!container) return;
-
-        if (!lastWorkout) {
-            container.innerHTML = '<p class="no-last-workout">No previous workout found for this program. Start fresh.</p>';
-            return;
-        }
-
-        const date = new Date(lastWorkout.date).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric'
-        });
-
-        container.innerHTML = `
-            <div class="last-workout-header">
-                <h3>Last Workout · ${date}</h3>
-                <span class="last-workout-duration">${this.formatDuration(lastWorkout.duration)}</span>
-            </div>
-            <div class="last-workout-exercises">
-                ${lastWorkout.exercises.map(ex => `
-                    <div class="last-exercise-item">
-                        <span class="last-exercise-name">${ex.name}</span>
-                        <div class="last-exercise-sets">
-                            ${ex.sets.map(set => `<span class="last-set-display">${set.weight}kg × ${set.reps}</span>`).join(' • ')}
-                        </div>
-                    </div>
-                `).join('')}
+    exerciseHistoryHtml(exercise) {
+        const last = this.getLastExerciseEntry(exercise);
+        if (!last) return '';
+        const date = new Date(last.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const setsStr = last.sets.map(s => `${s.weight}kg × ${s.reps}`).join(' • ');
+        return `
+            <div class="exercise-history">
+                <span class="exercise-history-label">Last ${date}</span>
+                <span class="exercise-history-sets">${setsStr}</span>
             </div>
         `;
     }
@@ -732,6 +719,7 @@ export class TrainingApp {
                 <span class="superset-control" data-exercise-id="${id}">${this.supersetControlHtml(exercise)}</span>
                 <button class="remove-exercise-btn" title="Remove exercise" aria-label="Remove exercise">✕</button>
             </div>
+            ${this.exerciseHistoryHtml(exercise)}
             <div class="sets-container" id="sets-${id}">
                 <div class="set-row set-header">
                     <div class="set-number">Set</div>
@@ -1515,7 +1503,6 @@ export class TrainingApp {
         this.renderWorkoutForm(exercises);
         this.initializeRestTimer();
         this.loadFormData();
-        this.renderLastWorkout(this.getLastWorkout(this.currentProgram));
         this.showScreen('workout-screen');
         this.startWorkoutTimer();
         this.showToast('Workout session restored', 'success');
@@ -1578,7 +1565,6 @@ export class TrainingApp {
 
         document.getElementById('workout-title').textContent = program.name;
         this.renderWorkoutForm(exercises);
-        this.renderLastWorkout(this.getLastWorkout(programId));
         this.showScreen('workout-screen');
         this.startWorkoutTimer();
 
