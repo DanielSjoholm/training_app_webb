@@ -850,6 +850,21 @@ body {
     color: var(--error-color);
 }
 
+/* Connector arrows between two supersetted exercise cards */
+.superset-connector {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 40px;
+    margin: -8px 0 6px;
+    pointer-events: none;
+}
+
+.superset-connector-icon {
+    display: flex;
+    color: var(--text-primary);
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+}
+
 .picker-subheading {
     padding: 6px 2px 2px;
     color: var(--text-tertiary);
