@@ -706,6 +706,7 @@ export class TrainingApp {
         });
 
         container.appendChild(this.buildAddExerciseButton());
+        this.renderSupersetConnectors();
     }
 
     buildExerciseCard(exercise) {
@@ -783,8 +784,18 @@ export class TrainingApp {
         this.unlinkSuperset(b);
         this.supersetPairs[a] = b;
         this.supersetPairs[b] = a;
+
+        // Keep the pair next to each other in the list, so the connector
+        // arrows always sit directly between the two linked cards.
+        this.workoutExercises = this.workoutExercises.filter(e => e !== b);
+        const indexA = this.workoutExercises.indexOf(a);
+        this.workoutExercises.splice(indexA + 1, 0, b);
+
+        this.renderSupersetConnectors();
         this.refreshSupersetControl(a);
         this.refreshSupersetControl(b);
+        this.saveFormData();
+        this.persistProgramExercises();
         this.showToast(`Supersetting ${a} with ${b}`, 'success');
     }
 
@@ -793,8 +804,46 @@ export class TrainingApp {
         if (!partner) return;
         delete this.supersetPairs[exercise];
         delete this.supersetPairs[partner];
+        document.querySelectorAll('.superset-connector').forEach(c => {
+            if (c.dataset.a === exercise || c.dataset.b === exercise) c.remove();
+        });
         this.refreshSupersetControl(exercise);
         this.refreshSupersetControl(partner);
+    }
+
+    // Rebuilds every superset connector, moving each pair's cards adjacent
+    // to each other in the DOM first so the connector sits between them.
+    renderSupersetConnectors() {
+        document.querySelectorAll('.superset-connector').forEach(c => c.remove());
+        const seen = new Set();
+        Object.keys(this.supersetPairs).forEach(exercise => {
+            const partner = this.supersetPairs[exercise];
+            if (seen.has(exercise) || seen.has(partner)) return;
+            seen.add(exercise);
+            seen.add(partner);
+            const entryA = document.querySelector(`.exercise-entry[data-exercise="${this.cssEscape(exercise)}"]`);
+            const entryB = document.querySelector(`.exercise-entry[data-exercise="${this.cssEscape(partner)}"]`);
+            if (!entryA || !entryB) return;
+            entryA.after(entryB);
+            const connector = document.createElement('div');
+            connector.className = 'superset-connector';
+            connector.dataset.a = exercise;
+            connector.dataset.b = partner;
+            connector.innerHTML = `
+                <span class="superset-connector-icon" aria-hidden="true">${this.supersetConnectorSvg()}</span>
+                <span class="superset-connector-icon" aria-hidden="true">${this.supersetConnectorSvg()}</span>
+            `;
+            entryA.after(connector);
+        });
+    }
+
+    supersetConnectorSvg() {
+        return `<svg width="20" height="34" viewBox="0 0 20 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 12 L10 2 L18 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="6" y1="9" x2="6" y2="25" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="14" y1="9" x2="14" y2="25" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M2 22 L10 32 L18 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`;
     }
 
     buildAddExerciseButton() {
