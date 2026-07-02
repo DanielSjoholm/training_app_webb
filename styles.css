@@ -119,7 +119,10 @@ html, body {
 
 :root[data-theme="light"] .workout-timer-container,
 :root[data-theme="light"] .exercise-entry,
-:root[data-theme="light"] .rest-timer-container {
+:root[data-theme="light"] .rest-timer-container,
+:root[data-theme="light"] .workout-card,
+:root[data-theme="light"] #progress-chart,
+:root[data-theme="light"] .progress-summary {
     background: rgba(255, 255, 255, 0.45);
     border-color: rgba(0, 0, 0, 0.18);
 }
@@ -1125,12 +1128,14 @@ body {
 }
 
 .workout-card {
-    background: var(--surface-dark);
-    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: var(--border-radius);
     padding: 20px;
     margin-bottom: 16px;
     transition: var(--transition);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .workout-card:hover {
@@ -1336,11 +1341,13 @@ body {
 
 /* Progress chart styles */
 #progress-chart {
-    background: var(--surface-dark);
-    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: var(--border-radius);
     padding: 20px;
     min-height: 300px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 /* Progress placeholder */
@@ -1537,13 +1544,15 @@ body {
 
 /* Progress summary */
 .progress-summary {
-    background: var(--background-dark);
-    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: var(--border-radius);
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .summary-item {
