@@ -79,6 +79,25 @@ Running record of what's been built and what's next. Update this at the end of e
 - Exercises can now carry an optional `subVariants` second choice asked after the variant. Example: **Cable Curl** → attachment (Bar/Rope/Handle) → direction (Front/Back), saved as e.g. `Cable Curl (Handle, Front)`.
 - Added Hammer Curl equipment variants (Dumbbell/Cable) and a new **Chest Supported T-Bar Row** (back / PullPass).
 
+### Preacher Curl equipment variants
+- Added `variants: ['Barbell', 'Dumbbell', 'Machine – Single Arm', 'Machine – Both Arms']` to Preacher Curl. Flat list rather than a `subVariants` second step, since only the machine option needs the single/both-arm split.
+
+### Supersets
+- Any exercise card has a superset control (⇅ button) that opens a picker listing both exercises already in the workout and the catalog (with the usual variant/subVariant steps); picking one links the two.
+- Linked exercises are automatically reordered to sit next to each other (both in `workoutExercises` and the DOM), and a pair of connector-arrow icons is rendered between the two cards to make the link visually obvious. A badge on each card shows the partner's name with an unlink (✕) control.
+- Pairs only (no giant sets), and it's session-scoped/visual only — not persisted to the saved workout record, and doesn't change rest-timer or set-logging behavior.
+- Superset state survives the 24h workout-resume snapshot (`supersetPairs` added to `saveWorkoutState`), but resets when a new workout is opened.
+
+### Per-exercise history (replacing the single "Last Workout" block)
+- Removed the old combined last-workout block shown once above the exercise list.
+- Each exercise card now shows its own "Last <date> · weight × reps" line, sourced from the most recent workout — **any program** — containing that exact exercise name. So e.g. Bench Press history shows up whether it was last logged under Chest & Triceps or Chest alone.
+
+### Service worker — immediate activation
+- Added `self.skipWaiting()` (install) and `self.clients.claim()` (activate) so a newly deployed version takes over on next load instead of waiting for every client to fully close — this was blocking updates from reaching the installed home-screen PWA, which has no way to hard-refresh.
+
+### Transparent UI — History, Progress, and nav buttons
+- `.workout-card` (History), `#progress-chart` / `.progress-summary` (Progress), and `.nav-btn` (History/Progress buttons on the main menu) now use the same semi-transparent glass style as `.exercise-entry` / `.program-btn` / `.settings-section`, with matching light-theme overrides. They previously used the old solid surface color, standing out against the transparent theme everywhere else.
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)
