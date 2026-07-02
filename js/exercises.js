@@ -30,7 +30,7 @@ export const exerciseCatalog = [
     { name: 'Dumbbell Curl', groups: ['biceps'] },
     { name: 'Hammer Curl', groups: ['biceps'], variants: ['Dumbbell', 'Cable'] },
     { name: 'Cable Curl', groups: ['biceps'], variants: ['Bar', 'Rope', 'Handle'], subVariants: ['Front', 'Back'] },
-    { name: 'Preacher Curl', groups: ['biceps'] },
+    { name: 'Preacher Curl', groups: ['biceps'], variants: ['Barbell', 'Dumbbell', 'Machine – Single Arm', 'Machine – Both Arms'] },
     { name: 'Concentration Curl', groups: ['biceps'] },
     { name: 'Incline Dumbbell Curl', groups: ['biceps'] },
     { name: 'Spider Curl', groups: ['biceps'] },
