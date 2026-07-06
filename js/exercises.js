@@ -19,13 +19,9 @@ export const machineBrands = [
 
 export const exerciseCatalog = [
     // Chest
-    { name: 'Bench Press', groups: ['chest'] },
-    { name: 'Incline Bench Press', groups: ['chest'] },
-    { name: 'Decline Bench Press', groups: ['chest'] },
-    { name: 'Dumbbell Bench Press', groups: ['chest'] },
-    { name: 'Incline Dumbbell Press', groups: ['chest'] },
-    { name: 'Machine Chest Press', groups: ['chest'], machine: true },
-    { name: 'Machine Incline Press', groups: ['chest'], machine: true },
+    { name: 'Bench Press', groups: ['chest'], variants: ['Barbell', 'Dumbbell'], subVariants: ['Flat', 'Incline', 'Decline'] },
+    { name: 'Chest Press', groups: ['chest'], machine: true },
+    { name: 'Incline Chest Press', groups: ['chest'], machine: true },
     { name: 'Pec Deck', groups: ['chest'], variants: ['Machine', 'Cable'] },
     { name: 'Cable Fly', groups: ['chest'] },
     { name: 'Cable Crossover', groups: ['chest'] },
