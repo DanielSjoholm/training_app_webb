@@ -15,8 +15,8 @@ export const programs = {
     'chest-triceps': {
         name: 'Chest & Triceps',
         exercises: [
-            'Bench Press',
-            'Incline Bench Press',
+            'Bench Press (Barbell, Flat)',
+            'Bench Press (Barbell, Incline)',
             'Pec Deck',
             'Triceps Pushdown',
             'Overhead Triceps Extension'
@@ -86,8 +86,8 @@ export const programs = {
     'chest': {
         name: 'Chest',
         exercises: [
-            'Machine Chest Press',
-            'Machine Incline Press',
+            'Chest Press',
+            'Incline Chest Press',
             'Pec Deck'
         ]
     }
