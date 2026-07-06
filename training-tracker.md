@@ -108,6 +108,15 @@ Running record of what's been built and what's next. Update this at the end of e
 - Renamed the machine presses to drop the redundant "Machine" prefix (they're `machine: true`, so they jump straight to brand anyway): `Machine Chest Press` → **Chest Press**, `Machine Incline Press` → **Incline Chest Press**.
 - Updated `programs.js` defaults to the new names (`chest-triceps`: Bench Press (Barbell, Flat) + Bench Press (Barbell, Incline); `chest`: Chest Press, Incline Chest Press).
 
+### Friend search showed "Unknown" — profiles.name sync
+- **Bug:** searching for a friend by email returned "Unknown", and searching by name returned nothing, for users who had signed up but never opened/saved the Profile page (e.g. Adam).
+- **Root cause:** signup only writes the name to `auth.users.raw_user_meta_data.display_name` (`auth.js` `signUp`). `public.profiles.name` stays NULL until the user saves their profile. The friend-search functions read `profiles.name`, so a NULL there shows as "Unknown" (email search) or no match (name search). Not an app-code bug — a data/backend gap.
+- **Fix (run in Supabase SQL editor, not in the repo):**
+  - One-time **backfill** copying `display_name` → `profiles.name` for existing users whose name is blank.
+  - **Trigger** `fill_profile_name` (`before insert on public.profiles`, `security definer`) that fills `name` from the auth metadata whenever a profile row is created, so future signups are searchable without saving the profile first. Chosen over hardening each search function because several functions read `profiles.name` (search + friend list) — fixing the column fixes them all.
+  - Run the backfill and the trigger block in **separate SQL tabs** — the editor runs a tab as one transaction, so an error in the trigger DDL rolls back the backfill in the same tab (this is what silently blocked the first attempt).
+- SQL for both is in "Supabase resources → Triggers" below.
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)
@@ -124,8 +133,45 @@ Running record of what's been built and what's next. Update this at the end of e
 **Functions:**
 - `delete_user()` — `security definer`, deletes the calling user's `auth.users` row (cascades to all tables)
 - `are_friends(user_a, user_b)` — `security definer`, returns bool; used by workouts RLS policy
-- `find_user_by_email(search_email)` — `security definer`, returns (user_id, display_name, avatar_url); used for friend search
+- `find_user_by_email(search_email)` — `security definer`, returns (user_id, display_name, avatar_url); joins `profiles` on `auth.users`, matches by lower/trimmed email, excludes the caller. `display_name` comes from `profiles.name`.
+- `find_users_by_name(search_name)` — `security definer`, returns (user_id, display_name, avatar_url); name search over `profiles.name`. Used by friend search.
 - `get_friends_with_profiles()` — `security definer`, returns all friendships for the current user joined with profile data
+
+**Triggers:**
+- `fill_profile_name` on `public.profiles` (`before insert`, `security definer`) — populates `name` from `auth.users.raw_user_meta_data->>'display_name'` when a profile row is created, so users are findable in friend search before they ever save their profile. See the "Friend search showed 'Unknown'" entry under Done.
+
+```sql
+-- One-time backfill for existing users (run alone in its own tab):
+update public.profiles p
+set name = u.raw_user_meta_data->>'display_name'
+from auth.users u
+where p.id = u.id
+  and coalesce(p.name, '') = ''
+  and coalesce(u.raw_user_meta_data->>'display_name', '') <> '';
+
+-- Trigger for future signups (run alone in its own tab):
+create or replace function public.fill_profile_name_from_auth()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if coalesce(new.name, '') = '' then
+    select nullif(u.raw_user_meta_data->>'display_name', '')
+      into new.name
+    from auth.users u
+    where u.id = new.id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists fill_profile_name on public.profiles;
+create trigger fill_profile_name
+  before insert on public.profiles
+  for each row execute function public.fill_profile_name_from_auth();
+```
 
 ---
 
