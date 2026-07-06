@@ -2,6 +2,21 @@
 // and optionally a list of equipment/attachment variants. An exercise may also carry
 // subVariants — a second choice asked after the variant (e.g. attachment then direction),
 // producing a name like "Cable Curl (Handle, Front)".
+//
+// Machine brand: an exercise flagged `machine: true` asks for a machine brand right
+// after it is picked → "Hack Squat (Life Fitness)". When a variant starts with "Machine"
+// (e.g. "Machine", "Machine – Single Arm"), the brand is asked after that variant is
+// chosen → "Shoulder Press (Machine, Hoist)". The brand list is `machineBrands` below.
+export const machineBrands = [
+    'Thor',
+    'Hammer Strength',
+    'Life Fitness',
+    'Hoist',
+    'Gymleco',
+    'TechnoGym',
+    'Other'
+];
+
 export const exerciseCatalog = [
     // Chest
     { name: 'Bench Press', groups: ['chest'] },
@@ -9,9 +24,9 @@ export const exerciseCatalog = [
     { name: 'Decline Bench Press', groups: ['chest'] },
     { name: 'Dumbbell Bench Press', groups: ['chest'] },
     { name: 'Incline Dumbbell Press', groups: ['chest'] },
-    { name: 'Machine Chest Press', groups: ['chest'] },
-    { name: 'Machine Incline Press', groups: ['chest'] },
-    { name: 'Pec Deck', groups: ['chest'] },
+    { name: 'Machine Chest Press', groups: ['chest'], machine: true },
+    { name: 'Machine Incline Press', groups: ['chest'], machine: true },
+    { name: 'Pec Deck', groups: ['chest'], variants: ['Machine', 'Cable'] },
     { name: 'Cable Fly', groups: ['chest'] },
     { name: 'Cable Crossover', groups: ['chest'] },
     { name: 'Chest Dips', groups: ['chest'] },
@@ -49,7 +64,7 @@ export const exerciseCatalog = [
     { name: 'Pull-ups / Chins', groups: ['back'] },
     { name: 'Lat Pulldown', groups: ['back'], variants: ['Wide', 'Close', 'Single Arm'] },
     { name: 'Seated Cable Row', groups: ['back'] },
-    { name: 'Wide Machine Row', groups: ['back'] },
+    { name: 'Wide Machine Row', groups: ['back'], machine: true },
     { name: 'Barbell Row', groups: ['back'] },
     { name: 'Dumbbell Row', groups: ['back'] },
     { name: 'T-Bar Row', groups: ['back'] },
@@ -61,13 +76,13 @@ export const exerciseCatalog = [
     // Legs
     { name: 'Squats', groups: ['legs'] },
     { name: 'Front Squat', groups: ['legs'] },
-    { name: 'Hack Squat', groups: ['legs'] },
-    { name: 'Leg Press', groups: ['legs'] },
-    { name: 'Leg Extension', groups: ['legs'] },
-    { name: 'Lying Leg Curl', groups: ['legs'] },
-    { name: 'Seated Leg Curl', groups: ['legs'] },
+    { name: 'Hack Squat', groups: ['legs'], machine: true },
+    { name: 'Leg Press', groups: ['legs'], machine: true },
+    { name: 'Leg Extension', groups: ['legs'], machine: true },
+    { name: 'Lying Leg Curl', groups: ['legs'], machine: true },
+    { name: 'Seated Leg Curl', groups: ['legs'], machine: true },
     { name: 'Standing Calf Raise', groups: ['legs'] },
-    { name: 'Seated Calf Raise', groups: ['legs'] },
+    { name: 'Seated Calf Raise', groups: ['legs'], machine: true },
 
     // Glutes
     { name: 'Hip Thrusters', groups: ['glutes', 'legs'] },
@@ -76,8 +91,8 @@ export const exerciseCatalog = [
     { name: 'Glute Bridge', groups: ['glutes'] },
     { name: 'Cable Kickback', groups: ['glutes'] },
     { name: 'Sumo Deadlift', groups: ['glutes', 'legs'] },
-    { name: 'Glute Machine', groups: ['glutes'] },
-    { name: 'Hip Abduction', groups: ['glutes'] },
+    { name: 'Glute Machine', groups: ['glutes'], machine: true },
+    { name: 'Hip Abduction', groups: ['glutes'], machine: true },
 
     // Abs
     { name: 'Rope Crunch', groups: ['abs'] },
