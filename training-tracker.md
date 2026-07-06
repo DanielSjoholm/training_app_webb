@@ -98,6 +98,11 @@ Running record of what's been built and what's next. Update this at the end of e
 ### Transparent UI — History, Progress, and nav buttons
 - `.workout-card` (History), `#progress-chart` / `.progress-summary` (Progress), and `.nav-btn` (History/Progress buttons on the main menu) now use the same semi-transparent glass style as `.exercise-entry` / `.program-btn` / `.settings-section`, with matching light-theme overrides. They previously used the old solid surface color, standing out against the transparent theme everywhere else.
 
+### Machine brand selection
+- Picking a machine exercise now asks for the machine **brand** so history is tracked per machine. Brands: `machineBrands` in `exercises.js` — Thor, Hammer Strength, Life Fitness, Hoist, Gymleco, TechnoGym, Other.
+- Two ways it triggers: (1) machine-only exercises flagged `machine: true` go straight to the brand step → `Hack Squat (Life Fitness)`; (2) any variant starting with `Machine` (e.g. `Machine`, or Preacher Curl's `Machine – Single Arm`) asks the brand after it's chosen → `Shoulder Press (Machine, Hoist)`. Handled by `showBrandStep()` in `app.js`.
+- Flagged `machine: true`: Machine Chest/Incline Press, Wide Machine Row, Hack Squat, Leg Press, Leg Extension, Lying/Seated Leg Curl, Seated Calf Raise, Glute Machine, Hip Abduction. **Pec Deck** now has `variants: ['Machine', 'Cable']` (Machine → brand, Cable → no brand).
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)

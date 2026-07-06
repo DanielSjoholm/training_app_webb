@@ -1,5 +1,5 @@
 import { programs, motivationalQuotes } from './programs.js';
-import { exercisesForProgram } from './exercises.js';
+import { exercisesForProgram, machineBrands } from './exercises.js';
 import {
     loadWorkouts, saveWorkouts,
     loadWorkoutState, saveWorkoutState, clearWorkoutState,
@@ -937,9 +937,9 @@ export class TrainingApp {
                     ${existingHtml}${addNewHeading}
                     ${catalogCandidates.length
                         ? catalogCandidates.map(ex => `
-                            <button class="picker-item" data-name="${this.escapeHtml(ex.name)}"${ex.variants ? ` data-variants="${this.escapeHtml(ex.variants.join('|'))}"` : ''}${ex.subVariants ? ` data-subvariants="${this.escapeHtml(ex.subVariants.join('|'))}"` : ''}>
+                            <button class="picker-item" data-name="${this.escapeHtml(ex.name)}"${ex.variants ? ` data-variants="${this.escapeHtml(ex.variants.join('|'))}"` : ''}${ex.subVariants ? ` data-subvariants="${this.escapeHtml(ex.subVariants.join('|'))}"` : ''}${ex.machine ? ' data-machine="true"' : ''}>
                                 <span>${this.escapeHtml(ex.name)}</span>
-                                ${ex.variants ? '<span class="picker-chevron">›</span>' : ''}
+                                ${ex.variants || ex.machine ? '<span class="picker-chevron">›</span>' : ''}
                             </button>
                         `).join('')
                         : (existingNames.length ? '' : '<p class="picker-empty">No more exercises for this muscle group.</p>')}
@@ -974,6 +974,8 @@ export class TrainingApp {
                 const subVariants = btn.dataset.subvariants ? btn.dataset.subvariants.split('|') : null;
                 if (variants) {
                     this.showVariantStep(overlay, name, variants, subVariants, close, onResolve);
+                } else if (btn.dataset.machine) {
+                    this.showBrandStep(overlay, name, null, close, onResolve);
                 } else {
                     onResolve(name);
                     close();
@@ -994,12 +996,35 @@ export class TrainingApp {
         modal.querySelectorAll('.picker-variant').forEach(btn => {
             btn.addEventListener('click', () => {
                 const variant = btn.dataset.variant;
-                if (subVariants) {
+                if (variant.startsWith('Machine')) {
+                    this.showBrandStep(overlay, name, variant, close, onResolve);
+                } else if (subVariants) {
                     this.showSubVariantStep(overlay, name, variant, subVariants, close, onResolve);
                 } else {
                     onResolve(`${name} (${variant})`);
                     close();
                 }
+            });
+        });
+    }
+
+    // Machine-brand step. `variant` is null for machine-only exercises → "Name (Brand)";
+    // when reached via a "Machine…" variant it carries that label → "Name (Machine, Brand)"
+    // or "Name (Machine – Single Arm, Brand)".
+    showBrandStep(overlay, name, variant, close, onResolve) {
+        const modal = overlay.querySelector('.modal');
+        modal.querySelector('.modal-title').textContent = variant ? `${name} (${variant})` : name;
+        modal.querySelector('.picker-list').innerHTML = machineBrands.map(b => `
+            <button class="picker-item picker-variant" data-brand="${this.escapeHtml(b)}">
+                <span>${this.escapeHtml(b)}</span>
+            </button>
+        `).join('');
+        modal.querySelectorAll('.picker-variant').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const brand = btn.dataset.brand;
+                const finalName = variant ? `${name} (${variant}, ${brand})` : `${name} (${brand})`;
+                onResolve(finalName);
+                close();
             });
         });
     }
