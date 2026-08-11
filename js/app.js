@@ -24,6 +24,7 @@ export class TrainingApp {
         this.restStartTime = null;
         this.restDuration = 0;
         this.restInterval = 90;
+        this.audioContext = null;
         this.authMode = 'login';
         this.profile = null;
         this.user = null;
@@ -1606,6 +1607,7 @@ export class TrainingApp {
 
     startRestTimer() {
         if (this.restTimer) this.stopRestTimer();
+        this.unlockAudio();
 
         this.restStartTime = Date.now();
         this.restDuration = 0;
@@ -1647,6 +1649,35 @@ export class TrainingApp {
         progressElement.style.background = `conic-gradient(${color} ${degrees}deg, transparent ${degrees}deg)`;
     }
 
+    // AudioContext must be created/resumed from a user gesture (the Start Rest
+    // click) so the completion beep isn't blocked by autoplay restrictions.
+    unlockAudio() {
+        if (!this.audioContext) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.audioContext = new AudioCtx();
+        }
+        if (this.audioContext?.state === 'suspended') this.audioContext.resume();
+    }
+
+    playRestCompleteSound() {
+        const ctx = this.audioContext;
+        if (!ctx) return;
+        [880, 1175].forEach((freq, i) => {
+            const oscillator = ctx.createOscillator();
+            const gain = ctx.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = freq;
+            const startTime = ctx.currentTime + i * 0.16;
+            gain.gain.setValueAtTime(0.001, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.25, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.15);
+            oscillator.connect(gain);
+            gain.connect(ctx.destination);
+            oscillator.start(startTime);
+            oscillator.stop(startTime + 0.15);
+        });
+    }
+
     completeRest() {
         this.stopRestTimer();
         const container = document.getElementById('rest-timer-container');
@@ -1654,6 +1685,8 @@ export class TrainingApp {
         container.classList.add('completed');
         this.updateRestTimerButtons('completed');
         this.showToast('Rest complete. Ready for next set', 'success');
+        this.playRestCompleteSound();
+        navigator.vibrate?.([200, 100, 200]);
         setTimeout(() => {
             container.classList.remove('completed');
             this.initializeRestTimer();
