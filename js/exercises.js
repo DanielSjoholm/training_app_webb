@@ -70,7 +70,7 @@ export const exerciseCatalog = [
     { name: 'Hyperextension', groups: ['back'] },
 
     // Legs
-    { name: 'Squats', groups: ['legs'] },
+    { name: 'Squat', groups: ['legs'] },
     { name: 'Front Squat', groups: ['legs'] },
     { name: 'Hack Squat', groups: ['legs'], machine: true },
     { name: 'Leg Press', groups: ['legs'], machine: true },
@@ -81,7 +81,7 @@ export const exerciseCatalog = [
     { name: 'Seated Calf Raise', groups: ['legs'], machine: true },
 
     // Glutes
-    { name: 'Hip Thrusters', groups: ['glutes', 'legs'] },
+    { name: 'Hip Thrust', groups: ['glutes', 'legs'] },
     { name: 'Bulgarian Split Squat', groups: ['glutes', 'legs'] },
     { name: 'Romanian Deadlift', groups: ['glutes', 'legs'] },
     { name: 'Glute Bridge', groups: ['glutes'] },
@@ -91,11 +91,10 @@ export const exerciseCatalog = [
     { name: 'Hip Abduction', groups: ['glutes'], machine: true },
 
     // Abs
-    { name: 'Rope Crunch', groups: ['abs'] },
-    { name: 'Cable Crunch', groups: ['abs'] },
-    { name: 'Toes To Bar', groups: ['abs'] },
+    { name: 'Cable Crunch', groups: ['abs'], variants: ['Rope', 'Bar'] },
+    { name: 'Toes to Bar', groups: ['abs'] },
     { name: 'Hanging Leg Raise', groups: ['abs'] },
-    { name: 'Leg Raises', groups: ['abs'] }
+    { name: 'Lying Leg Raise', groups: ['abs'] }
 ];
 
 // Which muscle groups each program draws from (used to filter the add-exercise list).

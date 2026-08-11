@@ -52,17 +52,17 @@ export const programs = {
     'legs': {
         name: 'Legs',
         exercises: [
-            'Squats',
+            'Squat',
             'Leg Press',
             'Lying Leg Curl',
             'Leg Extension',
-            'Hip Thrusters'
+            'Hip Thrust'
         ]
     },
     'glutes': {
         name: 'Glutes',
         exercises: [
-            'Hip Thrusters',
+            'Hip Thrust',
             'Bulgarian Split Squat',
             'Romanian Deadlift'
         ]
@@ -70,7 +70,7 @@ export const programs = {
     'abs': {
         name: 'Abs',
         exercises: [
-            'Rope Crunch',
+            'Cable Crunch (Rope)',
             'Hanging Leg Raise'
         ]
     },
