@@ -634,6 +634,10 @@ export class TrainingApp {
         document.getElementById('exercises-container').addEventListener('input', (e) => {
             if (e.target.matches('.weight-input, .reps-input')) this.saveFormData();
         });
+        document.getElementById('exercises-container').addEventListener('pointerdown', (e) => {
+            const handle = e.target.closest('.drag-handle');
+            if (handle) this.startExerciseDrag(e, handle);
+        });
         document.getElementById('history-list').addEventListener('click', (e) => {
             const editBtn = e.target.closest('.btn-edit-workout');
             const deleteBtn = e.target.closest('.btn-delete-workout');
@@ -718,6 +722,7 @@ export class TrainingApp {
         entry.dataset.exercise = exercise;
         entry.innerHTML = `
             <div class="exercise-header">
+                <span class="drag-handle" aria-hidden="true">${this.dragHandleSvg()}</span>
                 <div class="exercise-name">${this.escapeHtml(exercise)}</div>
                 <span class="superset-control" data-exercise-id="${id}">${this.supersetControlHtml(exercise)}</span>
                 <button class="remove-exercise-btn" title="Remove exercise" aria-label="Remove exercise">✕</button>
@@ -787,18 +792,28 @@ export class TrainingApp {
         this.supersetPairs[a] = b;
         this.supersetPairs[b] = a;
 
-        // Keep the pair next to each other in the list, so the connector
-        // arrows always sit directly between the two linked cards.
-        this.workoutExercises = this.workoutExercises.filter(e => e !== b);
-        const indexA = this.workoutExercises.indexOf(a);
-        this.workoutExercises.splice(indexA + 1, 0, b);
-
+        this.enforceSupersetAdjacency();
         this.renderSupersetConnectors();
         this.refreshSupersetControl(a);
         this.refreshSupersetControl(b);
         this.saveFormData();
         this.persistProgramExercises();
         this.showToast(`Supersetting ${a} with ${b}`, 'success');
+    }
+
+    // Keeps every superset pair next to each other in workoutExercises, so the
+    // connector arrows always sit directly between the two linked cards.
+    enforceSupersetAdjacency() {
+        const seen = new Set();
+        Object.keys(this.supersetPairs).forEach(exercise => {
+            const partner = this.supersetPairs[exercise];
+            if (seen.has(exercise) || seen.has(partner)) return;
+            seen.add(exercise);
+            seen.add(partner);
+            this.workoutExercises = this.workoutExercises.filter(e => e !== partner);
+            const index = this.workoutExercises.indexOf(exercise);
+            this.workoutExercises.splice(index + 1, 0, partner);
+        });
     }
 
     unlinkSuperset(exercise) {
@@ -846,6 +861,82 @@ export class TrainingApp {
             <line x1="14" y1="9" x2="14" y2="25" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <path d="M2 22 L10 32 L18 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`;
+    }
+
+    dragHandleSvg() {
+        return `<svg width="14" height="20" viewBox="0 0 14 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="4" cy="3" r="1.6" fill="currentColor"/>
+            <circle cx="10" cy="3" r="1.6" fill="currentColor"/>
+            <circle cx="4" cy="10" r="1.6" fill="currentColor"/>
+            <circle cx="10" cy="10" r="1.6" fill="currentColor"/>
+            <circle cx="4" cy="17" r="1.6" fill="currentColor"/>
+            <circle cx="10" cy="17" r="1.6" fill="currentColor"/>
+        </svg>`;
+    }
+
+    // Pointer-based reorder: the dragged card is pulled out of flow (position:
+    // fixed, following the pointer) while a placeholder holds its slot in the
+    // list. Every move, the placeholder hops across whichever sibling the
+    // drag's center has crossed, so the rest of the list reflows live.
+    startExerciseDrag(e, handle) {
+        const dragEl = handle.closest('.exercise-entry');
+        if (!dragEl) return;
+        e.preventDefault();
+
+        const container = document.getElementById('exercises-container');
+        container.querySelectorAll('.superset-connector').forEach(c => c.remove());
+
+        const rect = dragEl.getBoundingClientRect();
+        const startY = e.clientY;
+        const startTop = rect.top;
+
+        const placeholder = document.createElement('div');
+        placeholder.className = 'exercise-drag-placeholder';
+        placeholder.style.height = `${rect.height}px`;
+        dragEl.before(placeholder);
+
+        dragEl.classList.add('dragging');
+        dragEl.style.width = `${rect.width}px`;
+        dragEl.style.left = `${rect.left}px`;
+        dragEl.style.top = `${startTop}px`;
+
+        const siblings = () => [...container.querySelectorAll('.exercise-entry')].filter(el => el !== dragEl);
+
+        const onMove = (moveEvent) => {
+            const dy = moveEvent.clientY - startY;
+            dragEl.style.top = `${startTop + dy}px`;
+            const dragCenter = startTop + dy + rect.height / 2;
+
+            siblings().forEach(sib => {
+                const sibRect = sib.getBoundingClientRect();
+                const sibCenter = sibRect.top + sibRect.height / 2;
+                const placeholderIsBefore = !!(placeholder.compareDocumentPosition(sib) & Node.DOCUMENT_POSITION_FOLLOWING);
+                if (placeholderIsBefore && dragCenter > sibCenter) sib.after(placeholder);
+                else if (!placeholderIsBefore && dragCenter < sibCenter) sib.before(placeholder);
+            });
+        };
+
+        const onUp = () => {
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
+            document.removeEventListener('pointercancel', onUp);
+
+            placeholder.replaceWith(dragEl);
+            dragEl.classList.remove('dragging');
+            dragEl.style.width = '';
+            dragEl.style.left = '';
+            dragEl.style.top = '';
+
+            this.workoutExercises = [...container.querySelectorAll('.exercise-entry')].map(el => el.dataset.exercise);
+            this.enforceSupersetAdjacency();
+            this.renderSupersetConnectors();
+            this.saveFormData();
+            this.persistProgramExercises();
+        };
+
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
+        document.addEventListener('pointercancel', onUp);
     }
 
     buildAddExerciseButton() {
