@@ -117,6 +117,11 @@ Running record of what's been built and what's next. Update this at the end of e
   - Run the backfill and the trigger block in **separate SQL tabs** — the editor runs a tab as one transaction, so an error in the trigger DDL rolls back the backfill in the same tab (this is what silently blocked the first attempt).
 - SQL for both is in "Supabase resources → Triggers" below.
 
+### Exercise catalog cleanup (dedup + naming)
+- Merged the duplicate `Rope Crunch` / `Cable Crunch` into one **Cable Crunch** with `variants: ['Rope', 'Bar']` (abs default now seeds `Cable Crunch (Rope)`).
+- Renamed for clarity / consistency: `Leg Raises` → **Lying Leg Raise** (was ambiguous vs Hanging Leg Raise), `Squats` → **Squat** (matches Front/Hack Squat), `Hip Thrusters` → **Hip Thrust**, `Toes To Bar` → **Toes to Bar**. `programs.js` defaults updated to match.
+- Left intentionally: `Glute Machine` (vague but kept), `Reverse Flies` vs `Cable Fly` spelling, and the `back` program's "PullPass" name.
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)
