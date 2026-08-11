@@ -57,7 +57,8 @@ Running record of what's been built and what's next. Update this at the end of e
 
 ### Deployment + custom domain
 - Deployed via **GitHub Pages**; custom domain **fittracker.se** (CNAME committed).
-- DNS managed through **Cloudflare** (free tier, all records "DNS only" — GitHub Pages needs a direct connection, not proxied). Nameservers switched at Loopia to Cloudflare.
+- **Registrar: Loopia** — domain is purchased/renewed there. Expires **2027-06-25**.
+- **DNS: Cloudflare** (free tier, all records "DNS only" — GitHub Pages needs a direct connection, not proxied). Nameservers were switched at Loopia to point to Cloudflare (`lex.ns.cloudflare.com`, `gene.ns.cloudflare.com`), so all DNS record changes (A/CNAME etc.) happen in the Cloudflare dashboard, not Loopia.
 - "Enforce HTTPS" enabled in GitHub Pages settings (required for the PWA service worker + install prompt).
 - `manifest.json` `start_url` is the absolute `https://fittracker.se/`; service worker caches assets relative to `self.registration.scope` so it works on the custom domain.
 - PWA installs to the Android home screen from the live site.
