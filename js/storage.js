@@ -79,6 +79,14 @@ export async function saveWorkoutToCloud(workout) {
     return data.id;
 }
 
+export async function updateWorkoutInCloud(id, workout) {
+    const { error } = await supabase
+        .from('workouts')
+        .update({ exercises: workout.exercises })
+        .eq('id', id);
+    if (error) throw error;
+}
+
 export async function deleteWorkoutFromCloud(id) {
     const { error } = await supabase
         .from('workouts')

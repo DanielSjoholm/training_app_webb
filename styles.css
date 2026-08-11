@@ -937,6 +937,32 @@ body {
     max-width: 420px;
 }
 
+.edit-workout-modal {
+    max-width: 420px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.edit-workout-list {
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.edit-exercise-block {
+    margin-bottom: 20px;
+}
+
+.edit-exercise-block:last-child {
+    margin-bottom: 0;
+}
+
+.edit-exercise-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
 .picker-list {
     display: flex;
     flex-direction: column;
@@ -1215,8 +1241,8 @@ body {
     color: var(--text-secondary);
 }
 
-.btn-delete-workout {
-    background: var(--error-color);
+.btn-delete-workout,
+.btn-edit-workout {
     border: none;
     border-radius: 50%;
     width: 36px;
@@ -1230,10 +1256,27 @@ body {
     font-size: 16px;
 }
 
+.btn-delete-workout {
+    background: var(--error-color);
+}
+
 .btn-delete-workout:hover {
     background: #dc2626;
     transform: scale(1.1);
     box-shadow: var(--shadow);
+}
+
+.btn-edit-workout {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.btn-edit-workout:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-light);
+    transform: scale(1.1);
 }
 
 .exercise-list {
@@ -1653,12 +1696,13 @@ body {
         align-items: flex-end;
     }
     
-    .btn-delete-workout {
+    .btn-delete-workout,
+    .btn-edit-workout {
         width: 32px;
         height: 32px;
         font-size: 14px;
     }
-    
+
     /* Progress chart mobile improvements */
     .progress-stats {
         grid-template-columns: repeat(3, 1fr);
