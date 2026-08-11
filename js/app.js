@@ -4,7 +4,7 @@ import {
     loadWorkouts, saveWorkouts,
     loadWorkoutState, saveWorkoutState, clearWorkoutState,
     getFormData, setFormData, clearFormData,
-    fetchWorkoutsFromCloud, saveWorkoutToCloud, deleteWorkoutFromCloud,
+    fetchWorkoutsFromCloud, saveWorkoutToCloud, updateWorkoutInCloud, deleteWorkoutFromCloud,
     fetchProfile, saveProfile, fetchWeightLogs, addWeightLog, uploadAvatar,
     saveProgramExercises
 } from './storage.js';
@@ -635,8 +635,10 @@ export class TrainingApp {
             if (e.target.matches('.weight-input, .reps-input')) this.saveFormData();
         });
         document.getElementById('history-list').addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.btn-edit-workout');
             const deleteBtn = e.target.closest('.btn-delete-workout');
-            if (deleteBtn) this.deleteWorkout(deleteBtn.dataset.workoutId);
+            if (editBtn) this.editWorkout(editBtn.dataset.workoutId);
+            else if (deleteBtn) this.deleteWorkout(deleteBtn.dataset.workoutId);
         });
 
         document.getElementById('auth-form').addEventListener('submit', (e) => {
@@ -1113,6 +1115,7 @@ export class TrainingApp {
                     <span class="workout-program">${workout.programName}</span>
                     <div class="workout-actions">
                         <span class="workout-date">${date}</span>
+                        <button class="btn-edit-workout" data-workout-id="${workout.id}" title="Edit workout">✎</button>
                         <button class="btn-delete-workout" data-workout-id="${workout.id}" title="Delete workout">×</button>
                     </div>
                 </div>
@@ -1159,6 +1162,122 @@ export class TrainingApp {
         saveWorkouts(this.workouts);
         this.loadHistory();
         this.showToast('Workout deleted', 'success');
+    }
+
+    editWorkout(workoutId) {
+        const workout = this.workouts.find(w => w.id === workoutId);
+        if (!workout) return;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+            <div class="modal edit-workout-modal" role="dialog" aria-modal="true">
+                <h3 class="modal-title">Edit ${this.escapeHtml(workout.programName)}</h3>
+                <div class="edit-workout-list">
+                    ${workout.exercises.map((ex, exIndex) => `
+                        <div class="edit-exercise-block">
+                            <div class="edit-exercise-name">${this.escapeHtml(ex.name)}</div>
+                            <div class="set-row set-header">
+                                <span></span>
+                                <span class="set-weight">Weight (kg)</span>
+                                <span class="set-reps">Reps</span>
+                                <span></span>
+                            </div>
+                            <div class="sets-list" data-exercise="${exIndex}">
+                                ${ex.sets.map((set, setIndex) => `
+                                    <div class="set-row">
+                                        <div class="set-number">${setIndex + 1}</div>
+                                        <div class="set-weight">
+                                            <input type="number" class="weight-input" min="0" step="0.5" value="${this.escapeHtml(String(set.weight))}">
+                                        </div>
+                                        <div class="set-reps">
+                                            <input type="number" class="reps-input" min="0" value="${this.escapeHtml(String(set.reps))}">
+                                        </div>
+                                        <div class="set-actions">
+                                            <button class="btn-remove-set" data-exercise="${exIndex}" title="Remove set">✕</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="exercise-actions">
+                                <button class="add-set-btn" data-exercise="${exIndex}">+ Add Set</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="modal-actions">
+                    <button class="btn modal-cancel">Cancel</button>
+                    <button class="btn btn-primary modal-save">Save changes</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => overlay.classList.add('visible'));
+
+        const close = () => {
+            overlay.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 200);
+        };
+
+        const renumber = (exIndex) => {
+            overlay.querySelector(`.sets-list[data-exercise="${exIndex}"]`).querySelectorAll('.set-row').forEach((row, i) => {
+                row.querySelector('.set-number').textContent = i + 1;
+            });
+        };
+
+        overlay.querySelector('.modal-cancel').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+        overlay.querySelectorAll('.add-set-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const exIndex = btn.dataset.exercise;
+                const setsList = overlay.querySelector(`.sets-list[data-exercise="${exIndex}"]`);
+                const setRow = document.createElement('div');
+                setRow.className = 'set-row';
+                setRow.innerHTML = `
+                    <div class="set-number">${setsList.children.length + 1}</div>
+                    <div class="set-weight"><input type="number" class="weight-input" min="0" step="0.5" placeholder="0"></div>
+                    <div class="set-reps"><input type="number" class="reps-input" min="0" placeholder="0"></div>
+                    <div class="set-actions"><button class="btn-remove-set" data-exercise="${exIndex}" title="Remove set">✕</button></div>
+                `;
+                setsList.appendChild(setRow);
+            });
+        });
+
+        overlay.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.btn-remove-set');
+            if (!removeBtn) return;
+            const exIndex = removeBtn.dataset.exercise;
+            removeBtn.closest('.set-row').remove();
+            renumber(exIndex);
+        });
+
+        overlay.querySelector('.modal-save').addEventListener('click', async () => {
+            const exercises = [];
+            overlay.querySelectorAll('.edit-exercise-block').forEach((block, exIndex) => {
+                const sets = [];
+                block.querySelectorAll('.set-row:not(.set-header)').forEach(row => {
+                    const weight = row.querySelector('.weight-input').value;
+                    const reps = row.querySelector('.reps-input').value;
+                    if (weight || reps) sets.push({ weight: weight || '0', reps: reps || '0' });
+                });
+                if (sets.length > 0) exercises.push({ name: workout.exercises[exIndex].name, sets });
+            });
+
+            const updated = { ...workout, exercises };
+            try {
+                await updateWorkoutInCloud(workoutId, updated);
+            } catch {
+                this.showToast('Kunde inte spara till molnet', 'error');
+                return;
+            }
+
+            this.workouts = this.workouts.map(w => w.id === workoutId ? updated : w);
+            saveWorkouts(this.workouts);
+            this.loadHistory();
+            this.showToast('Workout updated', 'success');
+            close();
+        });
     }
 
     filterHistory() {
