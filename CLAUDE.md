@@ -25,17 +25,19 @@ js/
 ├── main.js       # Entry point — instantiates TrainingApp, registers service worker
 ├── app.js        # TrainingApp class — all UI logic and screen management
 ├── programs.js   # Pure data: training program definitions and motivational quotes
+├── exercises.js  # Master exercise catalog: muscle groups, variants/subVariants, machine brands
 ├── storage.js    # Data layer — localStorage cache + Supabase reads/writes (workouts, profile, weight logs, avatar)
 ├── supabase.js   # Creates the Supabase client
 ├── config.js     # Supabase URL + publishable key (safe to commit; secured by RLS)
-└── auth.js       # Auth helpers — sign in/up/out, session, password update, account deletion
+├── auth.js       # Auth helpers — sign in/up/out, session, password update, account deletion
+└── friends.js    # Friend search, requests, and friend-workout lookups (Supabase RPC calls)
 ```
 
 ### TrainingApp class (`js/app.js`)
 
 All UI logic lives here. Key responsibilities:
 
-- **Screen navigation** — `showScreen(screenId)` toggles one `.screen.active` at a time. All screens (`#auth-screen`, `#main-menu`, `#workout-screen`, `#history-screen`, `#progress-screen`, `#profile-screen`, `#settings-screen`) are always in the DOM; only visibility changes. On load, the session decides whether to show auth or main menu.
+- **Screen navigation** — `showScreen(screenId)` toggles one `.screen.active` at a time. All screens (`#auth-screen`, `#main-menu`, `#workout-screen`, `#history-screen`, `#progress-screen`, `#profile-screen`, `#settings-screen`, `#friends-screen`) are always in the DOM; only visibility changes. On load, the session decides whether to show auth or main menu.
 - **State** — Workouts and profile data live in Supabase (per-user, RLS-enforced), with `localStorage` as an offline cache. `localStorage` also holds transient state via three keys:
   - `training-workouts` — cached copy of the user's workouts
   - `training-form-data` — auto-saved in-progress form inputs (survives refresh)
@@ -62,6 +64,8 @@ All UI logic lives here. Key responsibilities:
 ### Programs
 
 Defined and exported from `js/programs.js`. The key matches the `data-program` attribute on `.program-btn` in `index.html` and the filter values in `#program-filter`. When adding/renaming a program, update all three: the `programs` object, the HTML button, and the history filter `<select>`.
+
+The master **exercise catalog** — every exercise's muscle group(s), equipment `variants`/`subVariants`, and machine-brand flag — lives separately in `js/exercises.js` (`exerciseCatalog`, `machineBrands`, `programGroups`). `programs.js` only holds each program's *default* exercise list; the add-exercise picker in a workout pulls from the full catalog filtered by `programGroups`.
 
 ### Styling conventions
 

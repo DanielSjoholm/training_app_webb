@@ -123,6 +123,30 @@ Running record of what's been built and what's next. Update this at the end of e
 - Renamed for clarity / consistency: `Leg Raises` → **Lying Leg Raise** (was ambiguous vs Hanging Leg Raise), `Squats` → **Squat** (matches Front/Hack Squat), `Hip Thrusters` → **Hip Thrust**, `Toes To Bar` → **Toes to Bar**. `programs.js` defaults updated to match.
 - Left intentionally: `Glute Machine` (vague but kept), `Reverse Flies` vs `Cable Fly` spelling, and the `back` program's "PullPass" name.
 
+### New machine brand + Machine Row exercise
+- Added **Bcube** to `machineBrands` in `exercises.js`.
+- Added a new **Machine Row** exercise (back program) as its own catalog entry, separate from the existing **Wide Machine Row** — both `machine: true`.
+
+### Rest timer alarm — louder + stronger vibration
+- `playRestCompleteSound()`: peak gain raised 0.25 → 0.8, note duration 0.15s → 0.3s, and a triangle-wave harmonic layer added on top of the sine tones so the chime cuts through background music better.
+- Vibration pattern lengthened `[200, 100, 200]` → `[300, 100, 300, 100, 300]`.
+- Foreground-only limitation is unchanged (see TODO) — this only improves the alarm while the app is open and audible.
+
+### Fixed spurious "reload site?" prompt on resume
+- **Bug:** every time the app was reopened (esp. the installed home-screen PWA — Android reclaims its backgrounded process more aggressively than a browser tab), Chrome showed its native "Vill du läsa in webbplatsen igen?" reload-confirmation dialog before the app would load.
+- **Root cause:** a `beforeunload` handler in `setupPageProtection()` (`js/app.js`) blocked any reload while a workout was active — including reloads the browser itself initiated after discarding the tab for memory.
+- **Fix:** removed the `beforeunload` guard entirely. Safe because the active workout already autosaves every second and fully restores via `restoreWorkoutState()`.
+
+### Auto-resume active workout instead of prompting
+- **Bug (follow-on from the fix above):** removing the reload block meant reloads happen far more often, and each one triggered a "Resume workout?" confirm dialog (Discard/Resume) that the user had to tap through every time, instead of landing back exactly where they were.
+- **Fix:** `checkForActiveWorkout()` now calls `restoreWorkoutState()` silently (no prompt) when the saved session is under 24h old, and discards it if older. `exitWorkout()` (the in-app back-button "Leave workout?" flow, unchanged) now also clears the saved state once the user confirms leaving, so an intentionally-abandoned workout doesn't get silently resumed on the next reopen.
+
+### Sessions per week/year chart (Profile)
+- New chart on the Profile screen, directly below Weight over time, sharing the same hand-built SVG line-chart style. A Week/Year segmented toggle (`.chart-toggle`) switches between:
+  - **Week** — session count per week, last 8 weeks (`getWeeklySessionCounts`).
+  - **Year** — session count per calendar month, Jan–Dec of the current year (`getMonthlySessionCounts`).
+- **Session merging:** back-to-back workout entries on the same day (e.g. Abs immediately followed by another program) count as **one** session; a real gap (e.g. morning vs evening) counts as **two**. Implemented in `getDistinctSessions()` — entries merge when the next one starts within 4 hours of the previous one ending.
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)
@@ -183,11 +207,12 @@ create trigger fill_profile_name
 
 ## TODO / Next
 
-### Rest timer alarm — sound + vibration (incl. background)
-- Want an audible alarm (headphones/phone) and/or vibration when the rest timer ends, even while the user is in another app.
-- **Reality check:** Backgrounded web pages are throttled/suspended (especially iOS Safari) — JS timers and Web Audio don't run reliably and a backgrounded tab generally can't vibrate or play sound. This is the same underlying constraint as the background-workout bug above.
-- **Web-only partial options:** schedule a `Notification` via the service worker (supports a vibration pattern on Android), and pre-load/play an audio element on completion while foregrounded. Cross-app reliability on iOS is poor.
-- **Robust solution:** ties to the native-app path (Capacitor) — local notifications + background audio can fire while the user is in another app.
+### Rest timer alarm — background reliability (sound plays, vibration doesn't)
+- Foreground alarm is now louder/longer with a richer tone, and vibration is stronger (see "Rest timer alarm — louder + stronger vibration" under Done). Still unresolved: true background behavior.
+- **Current behavior (reported by user):** the Web Audio chime keeps playing even with the phone locked or the browser backgrounded (e.g. switched to Instagram), but `navigator.vibrate()` only fires while the app is the foregrounded tab — the Vibration API is spec-blocked outside the visible top-level browsing context, so this can't be fixed from web code.
+- **Also unfixable from web code:** iOS's physical silent switch mutes Web Audio regardless of in-app volume.
+- **Web-only partial options:** schedule a `Notification` via the service worker (supports a vibration pattern on Android even when backgrounded, unlike the direct Vibration API call used today).
+- **Robust solution:** ties to the native-app path (Capacitor) — local notifications + background audio/vibration can fire while the user is in another app.
 
 ### Social — friends and sharing ✓ Done
 - `friendships` table with `requester_id`, `addressee_id`, `status` (pending/accepted), RLS-secured
