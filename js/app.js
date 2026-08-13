@@ -30,6 +30,7 @@ export class TrainingApp {
         this.user = null;
         this.workoutExercises = [];
         this.supersetPairs = {};
+        this.sessionsChartRange = 'week';
 
         this.init();
     }
@@ -477,6 +478,18 @@ export class TrainingApp {
         return buckets;
     }
 
+    // Buckets distinct sessions (see getDistinctSessions) into the 12 calendar
+    // months of `year`.
+    getMonthlySessionCounts(year) {
+        const buckets = Array.from({ length: 12 }, (_, month) => ({ month, count: 0 }));
+
+        this.getDistinctSessions().forEach(s => {
+            if (s.date.getFullYear() === year) buckets[s.date.getMonth()].count++;
+        });
+
+        return buckets;
+    }
+
     loadSessionsChart() {
         const container = document.getElementById('sessions-chart');
         if (!container) return;
@@ -486,8 +499,28 @@ export class TrainingApp {
             return;
         }
 
-        const buckets = this.getWeeklySessionCounts(8);
+        let items;
+        if (this.sessionsChartRange === 'year') {
+            const year = new Date().getFullYear();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            items = this.getMonthlySessionCounts(year).map(b => ({
+                label: monthNames[b.month],
+                tooltipLabel: `${monthNames[b.month]} ${year}`,
+                count: b.count
+            }));
+        } else {
+            items = this.getWeeklySessionCounts(8).map(b => {
+                const label = b.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                return { label, tooltipLabel: `Week of ${label}`, count: b.count };
+            });
+        }
 
+        this.renderSessionsChart(container, items);
+    }
+
+    // Renders a session-count line chart from `items` (each { label, tooltipLabel, count }),
+    // shared between the weekly and yearly views in loadSessionsChart.
+    renderSessionsChart(container, items) {
         container.innerHTML = `
             <div class="progress-container">
                 <div class="line-chart-wrap"></div>
@@ -502,16 +535,16 @@ export class TrainingApp {
         const PT = 15, PR = 10, PB = 35, PL = 30;
         const plotW = W - PL - PR;
         const plotH = H - PT - PB;
-        const n = buckets.length;
+        const n = items.length;
 
-        const counts = buckets.map(b => b.count);
+        const counts = items.map(it => it.count);
         const yMax = Math.max(...counts, 1);
         const yLo = 0, yHi = yMax + 1;
 
         const cx = i => PL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
         const cy = c => PT + (1 - (c - yLo) / (yHi - yLo)) * plotH;
 
-        const polyPts = buckets.map((b, i) => `${cx(i).toFixed(1)},${cy(b.count).toFixed(1)}`).join(' ');
+        const polyPts = items.map((it, i) => `${cx(i).toFixed(1)},${cy(it.count).toFixed(1)}`).join(' ');
 
         const gridY = [yMax, 0];
         const gridLines = gridY.map(v =>
@@ -520,15 +553,14 @@ export class TrainingApp {
         const yLabels = gridY.map(v =>
             `<text class="lc-ylabel" x="${PL - 6}" y="${(cy(v) + 4).toFixed(1)}" text-anchor="end">${v}</text>`
         ).join('');
-        const circles = buckets.map((b, i) =>
-            `<circle class="lc-dot" cx="${cx(i).toFixed(1)}" cy="${cy(b.count).toFixed(1)}" r="5"
-                data-date="Week of ${b.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}"
-                data-count="${b.count} session${b.count === 1 ? '' : 's'}"/>`
+        const circles = items.map((it, i) =>
+            `<circle class="lc-dot" cx="${cx(i).toFixed(1)}" cy="${cy(it.count).toFixed(1)}" r="5"
+                data-date="${it.tooltipLabel}"
+                data-count="${it.count} session${it.count === 1 ? '' : 's'}"/>`
         ).join('');
-        const dateLabels = buckets.map((b, i) => {
-            const label = b.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            return `<text class="lc-date" x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle">${label}</text>`;
-        }).join('');
+        const dateLabels = items.map((it, i) =>
+            `<text class="lc-date" x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle">${it.label}</text>`
+        ).join('');
 
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttribute('class', 'line-chart-svg');
@@ -728,6 +760,15 @@ export class TrainingApp {
             this.saveProfileForm();
         });
         document.getElementById('add-weight-log').addEventListener('click', () => this.logWeight());
+        document.querySelectorAll('#sessions-range-toggle .chart-toggle-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (this.sessionsChartRange === btn.dataset.range) return;
+                this.sessionsChartRange = btn.dataset.range;
+                document.querySelectorAll('#sessions-range-toggle .chart-toggle-option')
+                    .forEach(b => b.classList.toggle('active', b === btn));
+                this.loadSessionsChart();
+            });
+        });
         document.getElementById('avatar-upload-btn').addEventListener('click', () => {
             document.getElementById('avatar-file').click();
         });
