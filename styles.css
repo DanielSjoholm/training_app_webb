@@ -596,6 +596,10 @@ body {
     opacity: 1;
 }
 
+#sessions-chart {
+    margin-bottom: 24px;
+}
+
 /* Workout timer styles */
 .workout-timer-container {
     display: flex;

@@ -182,6 +182,7 @@ export class TrainingApp {
         this.renderProfile();
         this.renderAvatars();
         this.loadWeightChart();
+        this.loadSessionsChart();
     }
 
     renderAvatars() {
@@ -422,6 +423,138 @@ export class TrainingApp {
         });
     }
 
+    // Merges back-to-back workout entries (e.g. Abs followed straight by another
+    // program) into a single session, while a real gap (e.g. morning vs evening)
+    // still counts as two. Two entries merge when the next one starts within
+    // SESSION_GAP_MS of the previous one ending.
+    getDistinctSessions() {
+        const SESSION_GAP_MS = 4 * 60 * 60 * 1000;
+
+        const sorted = [...this.workouts].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const sessions = [];
+
+        sorted.forEach(w => {
+            const end = new Date(w.date).getTime();
+            const start = end - (w.duration || 0);
+            const last = sessions[sessions.length - 1];
+
+            if (last && start - last.end <= SESSION_GAP_MS) {
+                last.end = Math.max(last.end, end);
+            } else {
+                sessions.push({ date: new Date(w.date), end });
+            }
+        });
+
+        return sessions;
+    }
+
+    // Buckets distinct sessions (see getDistinctSessions) into Monday-start weeks,
+    // most recent `weeksBack` weeks including the current one, so gaps show as
+    // zero rather than being skipped.
+    getWeeklySessionCounts(weeksBack) {
+        const startOfWeek = date => {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            const mondayOffset = (d.getDay() + 6) % 7;
+            d.setDate(d.getDate() - mondayOffset);
+            return d;
+        };
+
+        const thisWeekStart = startOfWeek(new Date());
+        const buckets = [];
+        for (let i = weeksBack - 1; i >= 0; i--) {
+            const start = new Date(thisWeekStart);
+            start.setDate(start.getDate() - i * 7);
+            buckets.push({ start, count: 0 });
+        }
+
+        this.getDistinctSessions().forEach(s => {
+            const weekStart = startOfWeek(s.date).getTime();
+            const bucket = buckets.find(b => b.start.getTime() === weekStart);
+            if (bucket) bucket.count++;
+        });
+
+        return buckets;
+    }
+
+    loadSessionsChart() {
+        const container = document.getElementById('sessions-chart');
+        if (!container) return;
+
+        if (this.workouts.length === 0) {
+            container.innerHTML = '<p class="no-last-workout">No workouts logged yet.</p>';
+            return;
+        }
+
+        const buckets = this.getWeeklySessionCounts(8);
+
+        container.innerHTML = `
+            <div class="progress-container">
+                <div class="line-chart-wrap"></div>
+                <div class="lc-tooltip" id="sessions-lc-tooltip" hidden>
+                    <span class="lc-tooltip-date" id="sessions-lc-tooltip-date"></span>
+                    <span class="lc-tooltip-sets" id="sessions-lc-tooltip-count"></span>
+                </div>
+            </div>
+        `;
+
+        const W = 300, H = 120;
+        const PT = 15, PR = 10, PB = 35, PL = 30;
+        const plotW = W - PL - PR;
+        const plotH = H - PT - PB;
+        const n = buckets.length;
+
+        const counts = buckets.map(b => b.count);
+        const yMax = Math.max(...counts, 1);
+        const yLo = 0, yHi = yMax + 1;
+
+        const cx = i => PL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+        const cy = c => PT + (1 - (c - yLo) / (yHi - yLo)) * plotH;
+
+        const polyPts = buckets.map((b, i) => `${cx(i).toFixed(1)},${cy(b.count).toFixed(1)}`).join(' ');
+
+        const gridY = [yMax, 0];
+        const gridLines = gridY.map(v =>
+            `<line class="lc-grid" x1="${PL}" y1="${cy(v).toFixed(1)}" x2="${W - PR}" y2="${cy(v).toFixed(1)}"/>`
+        ).join('');
+        const yLabels = gridY.map(v =>
+            `<text class="lc-ylabel" x="${PL - 6}" y="${(cy(v) + 4).toFixed(1)}" text-anchor="end">${v}</text>`
+        ).join('');
+        const circles = buckets.map((b, i) =>
+            `<circle class="lc-dot" cx="${cx(i).toFixed(1)}" cy="${cy(b.count).toFixed(1)}" r="5"
+                data-date="Week of ${b.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}"
+                data-count="${b.count} session${b.count === 1 ? '' : 's'}"/>`
+        ).join('');
+        const dateLabels = buckets.map((b, i) => {
+            const label = b.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return `<text class="lc-date" x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle">${label}</text>`;
+        }).join('');
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'line-chart-svg');
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        svg.innerHTML = `${gridLines}${yLabels}
+            <polyline class="lc-line" points="${polyPts}" fill="none"/>
+            ${circles}${dateLabels}`;
+
+        container.querySelector('.line-chart-wrap').appendChild(svg);
+
+        const tooltip = document.getElementById('sessions-lc-tooltip');
+        const tooltipDate = document.getElementById('sessions-lc-tooltip-date');
+        const tooltipCount = document.getElementById('sessions-lc-tooltip-count');
+        container.querySelectorAll('.lc-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                const isActive = dot.classList.contains('active');
+                container.querySelectorAll('.lc-dot').forEach(d => d.classList.remove('active'));
+                if (isActive) { tooltip.setAttribute('hidden', ''); return; }
+                dot.classList.add('active');
+                tooltipDate.textContent = dot.dataset.date;
+                tooltipCount.textContent = dot.dataset.count;
+                tooltip.removeAttribute('hidden');
+            });
+        });
+    }
+
     // --- Settings ---
 
     openSettings() {
@@ -541,13 +674,10 @@ export class TrainingApp {
     }
 
     setupPageProtection() {
-        window.addEventListener('beforeunload', (e) => {
-            if (this.isWorkoutActive) {
-                e.preventDefault();
-                e.returnValue = 'You have an active workout that hasn\'t been saved. Are you sure you want to leave?';
-                return e.returnValue;
-            }
-        });
+        // No beforeunload guard: the active workout autosaves every second
+        // (see startWorkoutTimer) and fully restores itself on reload via
+        // restoreWorkoutState(), so blocking reload here just adds friction
+        // (e.g. Android re-showing this page after discarding the backgrounded tab).
         window.history.pushState(null, null, window.location.href);
     }
 
@@ -1662,19 +1792,25 @@ export class TrainingApp {
     playRestCompleteSound() {
         const ctx = this.audioContext;
         if (!ctx) return;
-        [880, 1175].forEach((freq, i) => {
-            const oscillator = ctx.createOscillator();
-            const gain = ctx.createGain();
-            oscillator.type = 'sine';
-            oscillator.frequency.value = freq;
-            const startTime = ctx.currentTime + i * 0.16;
-            gain.gain.setValueAtTime(0.001, startTime);
-            gain.gain.exponentialRampToValueAtTime(0.25, startTime + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.15);
-            oscillator.connect(gain);
-            gain.connect(ctx.destination);
-            oscillator.start(startTime);
-            oscillator.stop(startTime + 0.15);
+        // Louder, longer chime (peak gain 0.8 vs the old 0.25, 0.3s notes vs 0.15s)
+        // plus a triangle-wave layer for extra harmonics so it cuts through music.
+        [880, 1175, 1480].forEach((freq, i) => {
+            const startTime = ctx.currentTime + i * 0.2;
+            const noteDuration = 0.3;
+
+            [{ type: 'sine', peak: 0.8 }, { type: 'triangle', peak: 0.35 }].forEach(({ type, peak }) => {
+                const oscillator = ctx.createOscillator();
+                const gain = ctx.createGain();
+                oscillator.type = type;
+                oscillator.frequency.value = freq;
+                gain.gain.setValueAtTime(0.001, startTime);
+                gain.gain.exponentialRampToValueAtTime(peak, startTime + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + noteDuration);
+                oscillator.connect(gain);
+                gain.connect(ctx.destination);
+                oscillator.start(startTime);
+                oscillator.stop(startTime + noteDuration);
+            });
         });
     }
 
@@ -1686,7 +1822,7 @@ export class TrainingApp {
         this.updateRestTimerButtons('completed');
         this.showToast('Rest complete. Ready for next set', 'success');
         this.playRestCompleteSound();
-        navigator.vibrate?.([200, 100, 200]);
+        navigator.vibrate?.([300, 100, 300, 100, 300]);
         setTimeout(() => {
             container.classList.remove('completed');
             this.initializeRestTimer();
