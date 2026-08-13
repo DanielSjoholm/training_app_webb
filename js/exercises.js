@@ -14,6 +14,7 @@ export const machineBrands = [
     'Hoist',
     'Gymleco',
     'TechnoGym',
+    'Bcube',
     'Other'
 ];
 
@@ -60,6 +61,7 @@ export const exerciseCatalog = [
     { name: 'Pull-ups / Chins', groups: ['back'] },
     { name: 'Lat Pulldown', groups: ['back'], variants: ['Wide', 'Close', 'Single Arm'] },
     { name: 'Seated Cable Row', groups: ['back'] },
+    { name: 'Machine Row', groups: ['back'], machine: true },
     { name: 'Wide Machine Row', groups: ['back'], machine: true },
     { name: 'Barbell Row', groups: ['back'] },
     { name: 'Dumbbell Row', groups: ['back'] },
