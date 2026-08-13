@@ -849,6 +849,7 @@ export class TrainingApp {
                 danger: true
             });
             if (!ok) return;
+            clearWorkoutState();
         }
         this.stopWorkoutTimer();
         this.isWorkoutActive = false;
@@ -1965,15 +1966,7 @@ export class TrainingApp {
         if (this.workoutState && this.workoutState.isActive) {
             const stateAge = Date.now() - this.workoutState.timestamp;
             if (stateAge < 24 * 60 * 60 * 1000) {
-                const time = new Date(this.workoutState.timestamp).toLocaleTimeString();
-                const ok = await this.showConfirm({
-                    title: 'Resume workout?',
-                    message: `You have an active workout session from ${time}. Would you like to continue where you left off?`,
-                    confirmText: 'Resume',
-                    cancelText: 'Discard'
-                });
-                if (ok) this.restoreWorkoutState();
-                else clearWorkoutState();
+                this.restoreWorkoutState();
             } else {
                 clearWorkoutState();
             }
