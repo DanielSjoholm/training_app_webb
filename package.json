@@ -1,0 +1,27 @@
+{
+  "name": "fittracker",
+  "version": "1.0.0",
+  "description": "FitTracker — Capacitor/Android wrapper and dev tooling for fittracker.se. The web app itself remains a plain no-build ES module PWA.",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DanielSjoholm/training_app_webb.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DanielSjoholm/training_app_webb/issues"
+  },
+  "homepage": "https://github.com/DanielSjoholm/training_app_webb#readme",
+  "dependencies": {
+    "@capacitor/android": "8.5.0",
+    "@capacitor/cli": "8.5.0",
+    "@capacitor/core": "8.5.0",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/local-notifications": "8.3.0"
+  }
+}

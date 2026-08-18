@@ -71,6 +71,12 @@ The master **exercise catalog** — every exercise's muscle group(s), equipment 
 
 CSS custom properties are declared on `:root` in `styles.css` — always use variables for colors rather than hardcoded values. The rest timer's circular countdown is rendered via `conic-gradient` on `.rest-timer-progress`; the JS updates the `background` property directly on that element.
 
+### Native Android app (Capacitor)
+
+`package.json` / `node_modules/` exist solely to run the Capacitor CLI — the web app itself is still the plain no-build ES module PWA described above, unaffected by this tooling. `android/` is the generated native project; `capacitor.config.json` points the native WebView at the **live production site** (`https://fittracker.se`) rather than bundling local files, so the native app always reflects whatever is currently deployed and needs no separate native release for web-only changes.
+
+The one thing that needs the native shell: `js/app.js` schedules an OS-level local notification (`@capacitor/local-notifications`) when the rest timer starts, so the alarm still fires while the app is backgrounded/the phone is locked — something a plain web page's `setInterval`/Web Audio/Vibration cannot do once the OS freezes it. Gated behind `Capacitor.isNativePlatform()`, so it's a no-op on the plain web/PWA. See "Native Android app (Capacitor)" in `training-tracker.md` for the full setup, the local-dev-server workflow for testing app.js changes on-device before they're deployed, and machine-specific setup notes (SDK path, JDK).
+
 ## Rules
 
 ### Branch workflow
