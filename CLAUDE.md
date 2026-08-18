@@ -75,6 +75,8 @@ CSS custom properties are declared on `:root` in `styles.css` — always use var
 
 `package.json` / `node_modules/` exist solely to run the Capacitor CLI — the web app itself is still the plain no-build ES module PWA described above, unaffected by this tooling. `android/` is the generated native project; `capacitor.config.json` points the native WebView at the **live production site** (`https://fittracker.se`) rather than bundling local files, so the native app always reflects whatever is currently deployed and needs no separate native release for web-only changes.
 
+**⚠️ This means the Android app has no offline/bundled fallback — if `fittracker.se` ever becomes unreachable (domain expiry, DNS, GitHub Pages down), the app is completely unusable, not just stale.** Keep this in mind before any domain/hosting change. Fix, if ever needed: switch to a bundled `webDir` instead of `server.url`. Full detail under "⚠️ Risk" in the "Native Android app (Capacitor)" entry in `training-tracker.md`.
+
 The one thing that needs the native shell: `js/app.js` schedules an OS-level local notification (`@capacitor/local-notifications`) when the rest timer starts, so the alarm still fires while the app is backgrounded/the phone is locked — something a plain web page's `setInterval`/Web Audio/Vibration cannot do once the OS freezes it. Gated behind `Capacitor.isNativePlatform()`, so it's a no-op on the plain web/PWA. See "Native Android app (Capacitor)" in `training-tracker.md` for the full setup, the local-dev-server workflow for testing app.js changes on-device before they're deployed, and machine-specific setup notes (SDK path, JDK).
 
 ## Rules
