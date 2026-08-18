@@ -17,5 +17,8 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Node / Capacitor tooling
+node_modules/
+
 # Tkinter window config
 *.tcl

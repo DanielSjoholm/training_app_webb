@@ -1,0 +1,10 @@
+{
+  "appId": "se.fittracker.app",
+  "appName": "FitTracker",
+  "webDir": "www",
+  "server": {
+    "url": "https://fittracker.se",
+    "androidScheme": "https",
+    "cleartext": false
+  }
+}

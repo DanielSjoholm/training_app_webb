@@ -10,6 +10,15 @@ import {
 } from './storage.js';
 import { signIn, signUp, signOut, getSession, onAuthStateChange, getUser, updatePassword, deleteAccount } from './auth.js';
 import { searchUserByEmail, searchUsersByName, sendFriendRequest, fetchFriendsWithProfiles, acceptFriendRequest, declineOrRemoveFriend, fetchFriendWorkouts } from './friends.js';
+import { Capacitor } from 'https://esm.sh/@capacitor/core@8.5.0';
+import { LocalNotifications } from 'https://esm.sh/@capacitor/local-notifications@8.3.0';
+
+// Only fires inside the native Android app (Capacitor) — a scheduled OS
+// notification is the only thing that can alert the user once the rest
+// timer's setInterval is frozen by the OS in the background. No-op on the
+// plain web/PWA, which falls back to the in-app Web Audio + Vibration alarm.
+const REST_NOTIFICATION_ID = 19412;
+const REST_NOTIFICATION_CHANNEL = 'rest-timer';
 
 export class TrainingApp {
     constructor() {
@@ -39,6 +48,7 @@ export class TrainingApp {
         this.setupEventListeners();
         this.setupPageProtection();
         this.showRandomQuote();
+        this.setupRestNotifications();
 
         const session = await getSession();
         if (session) {
@@ -1783,6 +1793,7 @@ export class TrainingApp {
 
         this.restStartTime = Date.now();
         this.restDuration = 0;
+        this.scheduleRestNotification();
 
         const container = document.getElementById('rest-timer-container');
         container.style.display = 'block';
@@ -1805,6 +1816,47 @@ export class TrainingApp {
             clearInterval(this.restTimer);
             this.restTimer = null;
         }
+        this.cancelRestNotification();
+    }
+
+    // One-time setup (safe to call every launch): asks for notification
+    // permission and creates the channel the rest-timer alert schedules into.
+    async setupRestNotifications() {
+        if (!Capacitor.isNativePlatform()) return;
+        try {
+            await LocalNotifications.requestPermissions();
+            await LocalNotifications.createChannel({
+                id: REST_NOTIFICATION_CHANNEL,
+                name: 'Rest timer',
+                importance: 5,
+                vibration: true
+            });
+        } catch {}
+    }
+
+    // Schedules (or reschedules, e.g. after extendRest) the OS notification
+    // for exactly when the current rest interval ends.
+    async scheduleRestNotification() {
+        if (!Capacitor.isNativePlatform() || !this.restStartTime) return;
+        try {
+            await this.cancelRestNotification();
+            await LocalNotifications.schedule({
+                notifications: [{
+                    id: REST_NOTIFICATION_ID,
+                    title: 'Rest complete',
+                    body: 'Ready for next set',
+                    channelId: REST_NOTIFICATION_CHANNEL,
+                    schedule: { at: new Date(this.restStartTime + this.restInterval * 1000) }
+                }]
+            });
+        } catch {}
+    }
+
+    async cancelRestNotification() {
+        if (!Capacitor.isNativePlatform()) return;
+        try {
+            await LocalNotifications.cancel({ notifications: [{ id: REST_NOTIFICATION_ID }] });
+        } catch {}
     }
 
     updateRestTimerDisplay() {
@@ -1898,6 +1950,7 @@ export class TrainingApp {
             select.value = this.restInterval;
         }
         this.updateRestTimerDisplay();
+        this.scheduleRestNotification();
         this.showToast('+30s added', 'info');
     }
 
