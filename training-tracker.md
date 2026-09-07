@@ -159,6 +159,13 @@ Running record of what's been built and what's next. Update this at the end of e
 - **Machine-specific one-time setup** (not part of the repo): Android Studio + SDK installed to `C:\Android` (default path under the Windows profile folder had non-ASCII characters — `ö` — which breaks native build tooling); `ANDROID_HOME`/`ANDROID_SDK_ROOT` user env vars set to `C:\Android`; `~/.gradle/gradle.properties` pins `org.gradle.java.home` to Android Studio's bundled JBR (`...\Android Studio\jbr`), since the system's own JDK 17 install failed to compile against the Java 21 source level the current Android Gradle Plugin targets.
 - Samsung phones (this project's test device, a Galaxy S25 FE) additionally required disabling **"Automatisk blockerare" / Auto Blocker** (Settings → Security and privacy) before USB debugging would connect — it blocks USB debugging by default. Safe to re-enable after development.
 
+### Glutes program merged into Legs
+- **Why:** glutes and legs were trained as the same session anyway, so two separate programs was noise.
+- Removed the `glutes` program from `js/programs.js`, the Glutes button in `index.html`, and the `glutes` option in the history `#program-filter` (that filter matches on `programs[key].name`, so a leftover option would have matched nothing).
+- `programGroups.legs` is now `['legs', 'glutes']` — the muscle-group tagging in `exerciseCatalog` is unchanged, so every glute exercise (Glute Bridge, Cable Kickback, Sumo Deadlift, Glute Machine, Hip Abduction, …) is now offered in the Legs add-exercise picker.
+- The Legs **default** exercise list was deliberately left as-is (Squat, Leg Press, Lying Leg Curl, Leg Extension, Hip Thrust); glute work is added per-taste from the picker, and the customised list is saved per program as usual.
+- Old workouts logged under `glutes` are untouched: history renders the stored `programName`, so they still show as "Glutes" and appear under "All Programs" — they just can't be filtered by that program any more. Any saved `profiles.program_exercises.glutes` entry is now an unused leftover.
+
 ---
 
 ## Supabase resources (so we can reproduce / track schema)

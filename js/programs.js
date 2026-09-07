@@ -59,14 +59,6 @@ export const programs = {
             'Hip Thrust'
         ]
     },
-    'glutes': {
-        name: 'Glutes',
-        exercises: [
-            'Hip Thrust',
-            'Bulgarian Split Squat',
-            'Romanian Deadlift'
-        ]
-    },
     'abs': {
         name: 'Abs',
         exercises: [

@@ -105,8 +105,7 @@ export const programGroups = {
     'shoulder-biceps': ['shoulders', 'biceps'],
     'shoulder': ['shoulders'],
     'back': ['back'],
-    'legs': ['legs'],
-    'glutes': ['glutes'],
+    'legs': ['legs', 'glutes'],
     'abs': ['abs'],
     'arms': ['biceps', 'triceps'],
     'chest': ['chest']
